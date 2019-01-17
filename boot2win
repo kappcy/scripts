@@ -1,0 +1,4 @@
+#!/bin/sh
+WINDOWS_TITLE=$(grep -i 'windows' /boot/grub/grub.cfg|grep "^[^#;]"|cut -d"'" -f2) 
+sudo grub-reboot "$WINDOWS_TITLE"
+reboot

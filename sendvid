@@ -1,0 +1,17 @@
+#!/bin/sh
+if test $# -ne 2; then
+	cat <<-EOH
+	sendvid: Script to move my shitty animu.
+	
+	Usage:
+	
+	sendvid "folder_with_animu" "folder_to_send_animu"
+	sendvid "-t" to use current folder
+	EOH
+    exit 1
+fi
+if [ "$1" != "-t" ]; then
+  find "$1" -maxdepth 1 -type f \( -iname \*.mkv -o -iname \*.mp4 -o -iname \*.avi \) -print0 | xargs -0 mv -t "$2"
+  else
+  find "$PWD" -maxdepth 1 -type f \( -iname \*.mkv -o -iname \*.mp4 -o -iname \*.avi \) -print0 | xargs -0 mv -t "$2"
+fi

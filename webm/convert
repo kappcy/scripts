@@ -1,0 +1,2 @@
+#!/bin/bash
+find ./ -name '*.mp4' -exec bash -c 'ffmpeg -i "$0" -vcodec libvpx -acodec libvorbis -cpu-used 0 -threads 12 "${0%%.mp4}.webm"' {} \;

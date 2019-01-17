@@ -1,0 +1,30 @@
+#!/bin/sh
+array=( 'termite' 'pcmanfm' 'Discord":' 'Vivaldi":' )
+array2=( "1920 552" "1920 24" "2880 24" "0 0" )
+array3=( "958 526" "958 526" "958 1054" "1918 1054" )
+
+for i in ${!array[*]}; do
+	c=0
+	until xwininfo -root -tree | grep -o ${array[i]}'.*+1 ' >/dev/null; do
+		while [ $c -lt 10 ]; do
+		((c++))
+		if xwininfo -root -tree | grep -o ${array[i]}'.*+1 ' >/dev/null; then
+			c=0
+			break
+		fi
+		sleep 1
+		done
+		break
+	done
+	if [[ "$c" == '0' ]]; then
+		HWID=`xwininfo -root -tree | grep -o "0x.*${array[i]}.*+1 " | awk '{print $1}' | head -n1`
+		WID=`printf %i $HWID`
+		sleep .2
+		xdotool windowmove $WID ${array2[i]}
+		xdotool windowsize $WID ${array3[i]}
+		wmctrl -iR $HWID
+		echo "${array[i]^} tiled" | tr -d ':"'
+		else
+		echo "${array[i]^} not found, SKIPPING" | tr -d ':"'
+	fi
+done
