@@ -30,8 +30,6 @@ while true; do
 		done
 		sleep 2
 		if ! pgrep -u $UID -x i3lock >/dev/null; then
-			pulseaudio -k
-			~/.config/polybar/launch.sh &>/dev/null &
 			break
 		fi
 	done
