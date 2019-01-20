@@ -60,6 +60,9 @@ while true; do
 			if xset -q  | grep -i "monitor is on" >/dev/null; then
 				xset dpms force off
 			fi
+			if [ "$(awk '{if (NR ==2) print $3}' $conf)" == "1" ] && [ "$(xprintidle)" -ge '3600000' ]; then
+			systemctl suspend
+			fi
 			sleep 2
 		done
 		sleep 2
