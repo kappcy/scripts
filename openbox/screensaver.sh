@@ -12,23 +12,23 @@ if [ -z $1 ]; then
 			sed -i 's/^\(state\s*=\s*\).*$/\10/' $conf
 			exit 1
 		fi
-		else
+	else
 		notify-send "Screensaver Enabled"
 		sed -i 's/^\(state\s*=\s*\).*$/\11/' $conf
 	fi
-	elif [ $1 == toggle ]; then
-		if grep -o 'suspend.*1' $conf; then
-			notify-send "AutoSuspend Disabled"
-			sed -i 's/^\(suspend\s*=\s*\).*$/\10/' $conf
-			else
-			notify-send "AutoSuspend Enabled"
-			sed -i 's/^\(suspend\s*=\s*\).*$/\11/' $conf
-		fi
-	exit 1
-	elif [ $1 == status ]; then
-		notify-send "$(cat $conf)"
-		exit 1
+elif [ $1 == toggle ]; then
+	if grep -o 'suspend.*1' $conf; then
+		notify-send "AutoSuspend Disabled"
+		sed -i 's/^\(suspend\s*=\s*\).*$/\10/' $conf
 	else
+		notify-send "AutoSuspend Enabled"
+		sed -i 's/^\(suspend\s*=\s*\).*$/\11/' $conf
+	fi
+	exit 1
+elif [ $1 == status ]; then
+	notify-send "$(cat $conf)"
+	exit 1
+else
 	exit 1
 fi
 while true; do
