@@ -1,42 +1,43 @@
 #!/bin/sh
 conf=$HOME/.cache/screensaver
-if [ -z $1 ]; then
-	true
-	elif [ $1 == toggle ]; then
-	if [ "$(awk '{if (NR ==2) print $3}' $conf)" == "1" ]; then
-		notify-send "AutoSuspend Disabled"
-		sed -i 's/^\(suspend\s*=\s*\).*$/\10/' $conf
-	else
-		notify-send "AutoSuspend Enabled"
-		sed -i 's/^\(suspend\s*=\s*\).*$/\11/' $conf
-	fi
-	else
-	exit 1
+if [ ! -e $conf ];then
+	echo "state = 0" > $conf
+	echo "suspend = 1" >> $conf
 fi
-if [ "$(awk '{if (NR ==1) print $3}' $conf)" == "1" ]; then
-NL='
-'
-case $(pgrep -u $UID -x screensaver.sh) in
-  *"$NL"*)
-	kill -9 $(pgrep -u $UID -x screensaver.sh | head -n1)
-	if [ -z $1 ];then
-	notify-send "Screensaver Disabled"
-	sed -i 's/^\(state\s*=\s*\).*$/\10/' $conf
-	exit 1
+if [ -z $1 ]; then
+	if grep -o 'state.*1' $conf; then
+		if (( $(grep -c . <<<"$(pgrep screensaver.sh)") > 1 )); then
+			pkill -o screensaver.sh
+			notify-send "Screensaver Disabled"
+			sed -i 's/^\(state\s*=\s*\).*$/\10/' $conf
+			exit 1
+		fi
+		else
+		notify-send "Screensaver Enabled"
+		sed -i 's/^\(state\s*=\s*\).*$/\11/' $conf
 	fi
-	;;
-esac
-else
-	notify-send "Screensaver Enabled"
-	sed -i 's/^\(state\s*=\s*\).*$/\11/' $conf
+	elif [ $1 == toggle ]; then
+		if grep -o 'suspend.*1' $conf; then
+			notify-send "AutoSuspend Disabled"
+			sed -i 's/^\(suspend\s*=\s*\).*$/\10/' $conf
+			else
+			notify-send "AutoSuspend Enabled"
+			sed -i 's/^\(suspend\s*=\s*\).*$/\11/' $conf
+		fi
+	exit 1
+	elif [ $1 == status ]; then
+		notify-send "$(cat $conf)"
+		exit 1
+	else
+	exit 1
 fi
 while true; do
 	until [ "$(xprintidle)" -le "600000" ]; do
 		if xset -q  | grep -i "monitor is on" >/dev/null; then
 			xset dpms force off
 		fi
-		if [ "$(awk '{if (NR ==2) print $3}' $conf)" == "1" ] && [ "$(xprintidle)" -ge '3600000' ]; then
-		systemctl suspend
+		if grep -o 'suspend.*1' $conf && [ "$(xprintidle)" -ge '3600000' ]; then
+			systemctl suspend
 		fi
 		sleep 20
 	done
@@ -60,8 +61,8 @@ while true; do
 			if xset -q  | grep -i "monitor is on" >/dev/null; then
 				xset dpms force off
 			fi
-			if [ "$(awk '{if (NR ==2) print $3}' $conf)" == "1" ] && [ "$(xprintidle)" -ge '3600000' ]; then
-			systemctl suspend
+			if grep -o 'suspend.*1' $conf && [ "$(xprintidle)" -ge '3600000' ]; then
+				systemctl suspend
 			fi
 			sleep 2
 		done
