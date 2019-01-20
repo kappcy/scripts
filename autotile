@@ -1,7 +1,7 @@
 #!/bin/sh
 array=( 'termite' 'pcmanfm' 'Discord":' 'Vivaldi":' )
-array2=( "1920 552" "1920 24" "2880 24" "0 0" )
-array3=( "958 526" "958 526" "958 1054" "1918 1054" )
+array2=( "1920 552" "1920 24" "2880 24" "259 151" )
+array3=( "958 526" "958 526" "958 1054" "1400 800" )
 
 for i in ${!array[*]}; do
 	c=0
@@ -16,12 +16,16 @@ for i in ${!array[*]}; do
 		done
 		break
 	done
-	if [[ "$c" == '0' ]]; then
+	if [ "$c" == '0' ]; then
 		HWID=`xwininfo -root -tree | grep -o "0x.*${array[i]}.*+1 " | awk '{print $1}' | head -n1`
 		WID=`printf %i $HWID`
 		sleep .2
+		wmctrl -i -r $HWID -b remove,maximized_vert,maximized_horz
 		xdotool windowmove $WID ${array2[i]}
 		xdotool windowsize $WID ${array3[i]}
+		if [ ${array[i]} == 'Vivaldi":' ]; then
+			wmctrl -i -r $HWID -b add,maximized_vert,maximized_horz
+		fi
 		wmctrl -iR $HWID
 		echo "${array[i]^} tiled" | tr -d ':"'
 		else
