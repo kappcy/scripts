@@ -36,7 +36,7 @@ while true; do
 		if xset -q  | grep -i "monitor is on" >/dev/null; then
 			xset dpms force off
 		fi
-		if grep -o 'suspend.*1' $conf && [ "$(xprintidle)" -ge '3600000' ]; then
+		if ! grep -o 'suspend.*0' $conf && [ "$(xprintidle)" -ge '3600000' ]; then
 			systemctl suspend
 		fi
 		sleep 20
@@ -61,7 +61,7 @@ while true; do
 			if xset -q  | grep -i "monitor is on" >/dev/null; then
 				xset dpms force off
 			fi
-			if grep -o 'suspend.*1' $conf && [ "$(xprintidle)" -ge '3600000' ]; then
+			if ! grep -o 'suspend.*0' $conf && [ "$(xprintidle)" -ge '3600000' ]; then
 				systemctl suspend
 			fi
 			sleep 2
