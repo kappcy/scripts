@@ -1,23 +1,27 @@
 #!/bin/sh
 conf=$HOME/.cache/screensaver
+NL='
+'
 if [ ! -e $conf ];then
 	echo "state = 0" > $conf
 	echo "suspend = 1" >> $conf
 fi
 if [ -z $1 ]; then
-	if grep -o 'state.*1' $conf; then
-		if (( $(grep -c . <<<"$(pgrep screensaver.sh)") > 1 )); then
+	if grep -o 'state.*1' $conf >/dev/null; then
+		case $(pgrep screensaver.sh) in
+		  *"$NL"*)
 			pkill -o screensaver.sh
 			notify-send "Screensaver Disabled"
 			sed -i 's/^\(state\s*=\s*\).*$/\10/' $conf
 			exit 1
-		fi
+			;;
+		esac
 	else
 		notify-send "Screensaver Enabled"
 		sed -i 's/^\(state\s*=\s*\).*$/\11/' $conf
 	fi
 elif [ $1 == toggle ]; then
-	if grep -o 'suspend.*1' $conf; then
+	if grep -o 'suspend.*1' $conf >/dev/null; then
 		notify-send "AutoSuspend Disabled"
 		sed -i 's/^\(suspend\s*=\s*\).*$/\10/' $conf
 	else
