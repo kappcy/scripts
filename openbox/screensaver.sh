@@ -4,7 +4,7 @@ video=( "youtube\|vimeo\|twitch" "bomi" )
 video2=( "Vivaldi" "bomi" )
 NL='
 '
-blank() {
+screenoff() {
 	if xset -q  | grep -i "monitor is on"; then
 			xset dpms force off
 	fi
@@ -20,16 +20,19 @@ if [ -z $1 ]; then
 	case $(pgrep screensaver.sh) in
 		*"$NL"*)
 			pkill -o screensaver.sh
+			if grep -o 'state.*1' $conf; then		
+				notify-send "Screensaver Disabled"
+				sed -i 's/^\(state\s*=\s*\).*$/\10/' $conf
+			fi
+			exit 1
+			;;
+		*)
+			if grep -o 'state.*0' $conf; then
+				notify-send "Screensaver Enabled"
+				sed -i 's/^\(state\s*=\s*\).*$/\11/' $conf
+			fi
 			;;
 	esac
-	if grep -o 'state.*1' $conf; then		
-		notify-send "Screensaver Disabled"
-		sed -i 's/^\(state\s*=\s*\).*$/\10/' $conf
-		exit 1
-	else
-		notify-send "Screensaver Enabled"
-		sed -i 's/^\(state\s*=\s*\).*$/\11/' $conf
-	fi
 else
 	case "$1" in
 		-t | --toggle)
@@ -40,6 +43,11 @@ else
 				notify-send "AutoSuspend Enabled"
 				sed -i 's/^\(suspend\s*=\s*\).*$/\11/' $conf
 			fi
+			exit 1
+			;;
+		-b | --blank)
+			sleep 2
+			xset dpms force off
 			exit 1
 			;;
 		-s | --status)
@@ -54,7 +62,7 @@ else
 fi
 while true; do
 	until [ "$(xprintidle)" -le "600000" ]; do
-		blank
+		screenoff
 		sleep 5
 	done
 	sleep 5
@@ -62,7 +70,6 @@ while true; do
 		while wmctrl -l | grep -i "${video[i]}" && \
 		pacmd list-sink-inputs | grep -B12 ${video2[i]} | grep RUNNING; do
 			sleep 5
-			echo moo
 				if ! pacmd list-sink-inputs | grep -B12 ${video2[i]} | grep RUNNING; then
 					xdotool keydown Shift_L keyup Shift_L
 					break
@@ -73,7 +80,7 @@ while true; do
 	done
 	while pgrep -u $UID -x i3lock; do
 		until [ "$(xprintidle)" -le "30000" ]; do
-			blank
+			screenoff
 			sleep 2
 		done
 		sleep 2
