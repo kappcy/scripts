@@ -2,7 +2,7 @@
 DVI="DPY-0: nvidia-auto-select +1920+0 {ForceCompositionPipeline=On}"
 HDMI="DPY-1: nvidia-auto-select +0+0 {ForceCompositionPipeline=On}"
 TV="DPY-4: nvidia-auto-select +3840+0 {ForceCompositionPipeline=On}"
-if nvidia-settings --query CurrentMetaMode | grep DPY-4 > /dev/null; then
+if nvidia-settings --query CurrentMetaMode | grep +3840 > /dev/null; then
    nvidia-settings --assign CurrentMetaMode="$DVI, $HDMI"
 else
    nvidia-settings --assign CurrentMetaMode="$DVI, $HDMI, $TV"
