@@ -5,7 +5,6 @@ video2=( "Vivaldi" "bomi" )
 NL='
 '
 screenoff() {
-	sleep 2
 	if xset -q  | grep -i "monitor is on"; then
 			xset dpms force off
 	fi
@@ -13,6 +12,7 @@ screenoff() {
 			systemctl suspend
 			xdotool keydown Shift_L keyup Shift_L
 	fi
+	sleep 2
 }
 if [ ! -e $conf ];then
 	echo "Screensaver is off" > $conf
