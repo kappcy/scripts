@@ -23,7 +23,7 @@ else help;
 fi
 
 for i in ${!type[*]}; do
-	if ls "$place" | grep ${type[i]}
+	if ls "$place" | grep -i ${type[i]}
 	then find "$place" -maxdepth 1 -type f \( -iname \*${type[i]} \) -print0 | xargs -0 mv -t "$2";
 	fi
 done
