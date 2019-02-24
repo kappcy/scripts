@@ -1,5 +1,7 @@
-#!/bin/sh
-if test $# -ne 2; then
+#!/bin/bash
+type=( ".mkv" ".mp4" ".avi" )
+
+help() {
 	cat <<-EOH
 	sendvid: Script to move my shitty animu.
 	
@@ -9,9 +11,19 @@ if test $# -ne 2; then
 	sendvid "-t" to use current folder
 	EOH
     exit 1
+}
+
+if [ $# -ne 2 ]
+then help;
+elif [ $1 == '-t' ]
+then place="$PWD";
+elif [ -d $1 ]
+then place="$1";
+else help;
 fi
-if [ "$1" != "-t" ]; then
-  find "$1" -maxdepth 1 -type f \( -iname \*.mkv -o -iname \*.mp4 -o -iname \*.avi \) -print0 | xargs -0 mv -t "$2"
-  else
-  find "$PWD" -maxdepth 1 -type f \( -iname \*.mkv -o -iname \*.mp4 -o -iname \*.avi \) -print0 | xargs -0 mv -t "$2"
-fi
+
+for i in ${!type[*]}; do
+	if ls "$place" | grep ${type[i]}
+	then find "$place" -maxdepth 1 -type f \( -iname \*${type[i]} \) -print0 | xargs -0 mv -t "$2";
+	fi
+done
