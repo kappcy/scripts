@@ -35,6 +35,8 @@ if [ -z $1 ]; then
 			fi
 			;;
 	esac
+elif [ $# -ge 2 ];then
+	echo "too many arguments" && exit 1
 else
 	case "$1" in
 		-t | --toggle)
