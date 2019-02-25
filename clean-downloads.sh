@@ -13,7 +13,6 @@ video() {
 	for i in ${!vid[*]}; do
 	if ls "$place" | grep -i ${vid[i]} >/dev/null; then
 		name=($(find $place -maxdepth 1 -type f \( -iname \*${vid[i]} \)))
-
 		for i in ${!name[*]}; do
 			mv ${name[i]} $target
 		done
@@ -26,22 +25,21 @@ picture() {
 	[[ ! -d $target ]] && mkdir $target
 		
 	for i in ${!pic[*]}; do
-	if ls "$place" | grep -i ${pic[i]} >/dev/null; then
-		name=($(find $place -maxdepth 1 -type f \( -iname \*${pic[i]} \)))
-		ext=${pic[i]}
-	
-		for i in ${!name[*]}; do
-			hash=$(md5sum ${name[i]} | awk '{print $1}')
-			if [ $ext == ".gif" ];then
-				[[ ! -d $target/gif ]] && mkdir $target/gif
-				mv ${name[i]} $target/gif/$hash$ext
-			elif [ $ext == ".jpeg" ] || [ $ext == ".jpg" ];then
-				convert ${name[i]} $target/$hash.png && rm ${name[i]}
-			else
-				mv ${name[i]} $target/$hash$ext
-			fi
-		done
-	fi
+		if ls "$place" | grep -i ${pic[i]} >/dev/null; then
+			name=($(find $place -maxdepth 1 -type f \( -iname \*${pic[i]} \)))
+			ext=${pic[i]}		
+			for i in ${!name[*]}; do
+				hash=$(md5sum ${name[i]} | awk '{print $1}')
+				if [ $ext == ".gif" ];then
+					[[ ! -d $target/gif ]] && mkdir $target/gif
+					mv ${name[i]} $target/gif/$hash$ext
+				elif [ $ext == ".jpeg" ] || [ $ext == ".jpg" ];then
+					convert ${name[i]} $target/$hash.png && rm ${name[i]}
+				else
+					mv ${name[i]} $target/$hash$ext
+				fi
+			done
+		fi
 	done
 }
 
@@ -50,13 +48,12 @@ archive() {
 	[[ ! -d $target ]] && mkdir $target
 	
 	for i in ${!arc[*]}; do
-	if ls "$place" | grep -i ${arc[i]} >/dev/null; then
-		name=($(find $place -maxdepth 1 -type f \( -iname \*${arc[i]} \)))
-
-		for i in ${!name[*]}; do
-			mv ${name[i]} $target
-		done
-	fi
+		if ls "$place" | grep -i ${arc[i]} >/dev/null; then
+			name=($(find $place -maxdepth 1 -type f \( -iname \*${arc[i]} \)))
+			for i in ${!name[*]}; do
+				mv ${name[i]} $target
+			done
+		fi
 	done
 }
 
@@ -66,13 +63,13 @@ other() {
 
 	name=($(find $place -maxdepth 1 -type f))
 	for i in ${!name[*]}; do
-	mv ${name[i]} $target
+		mv ${name[i]} $target
 	done
 	dir=($(find $place/* -type d \( -path $place/videos* -o -path $place/pictures* \
 		-o -path $place/archives* -o -path $place/other* \) -prune -o -print))
 	for i in ${!dir[*]}; do
-	[[ ! -d $target/folders ]] && mkdir $target/folders
-	mv ${dir[i]} $target/folders
+		[[ ! -d $target/folders ]] && mkdir $target/folders
+		mv ${dir[i]} $target/folders
 	done
 }
 
