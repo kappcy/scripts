@@ -3,7 +3,7 @@ X=$(xdotool getmouselocation | grep -Po '(?<=^x:)\w+')
 array=( "0" "1920" "3840" )
 array2=( "1920" "3840" "5760" )
 array3=( "2880" "4800" "960" )
-if ! nvidia-settings --query CurrentMetaMode | grep DPY-4 > /dev/null; then
+if ! nvidia-settings --query CurrentMetaMode | grep +3840 > /dev/null; then
 array3=( "2880" "960" )
 fi
 for i in ${!array[*]}; do
