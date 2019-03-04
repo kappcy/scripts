@@ -65,11 +65,14 @@ other() {
 	for i in ${!name[*]}; do
 		mv ${name[i]} $target
 	done
-	dir=($(find $place/* -type d \( -path $place/videos* -o -path $place/pictures* \
+	dir=($(find $place/* -maxdepth 0 -type d \( -path $place/videos* -o -path $place/pictures* \
 		-o -path $place/archives* -o -path $place/other* \) -prune -o -print))
 	for i in ${!dir[*]}; do
 		[[ ! -d $target/folders ]] && mkdir $target/folders
-		mv ${dir[i]} $target/folders
+		if echo "${dir[i]}" | grep "1080p\|720p" >/dev/null
+		then mv ${dir[i]} $HOME/Downloads/videos;
+		else mv ${dir[i]} $target/folders;
+		fi
 	done
 }
 
