@@ -35,8 +35,11 @@ picture() {
 					mv ${name[i]} $target/gif/$hash$ext
 				elif [ $ext == ".jpeg" ] || [ $ext == ".jpg" ];then
 					convert ${name[i]} $target/$hash.png && rm ${name[i]}
-				else
+				elif [ $ext == ".png" ];then
 					mv ${name[i]} $target/$hash$ext
+				else		
+					[[ ! -d $target/other ]] && mkdir $target/other
+					mv ${name[i]} $target/other/$hash$ext
 				fi
 			done
 		fi
@@ -57,7 +60,7 @@ archive() {
 	done
 }
 
-other() {
+etc() {
 	target="$HOME/Downloads/other"
 	[[ ! -d $target ]] && mkdir $target
 
@@ -69,12 +72,12 @@ other() {
 		-o -path $place/archives* -o -path $place/other* \) -prune -o -print))
 	for i in ${!dir[*]}; do
 		[[ ! -d $target/folders ]] && mkdir $target/folders
-		if echo "${dir[i]}" | grep "1080p\|720p" >/dev/null
+		if echo "${dir[i]}" | grep "1080p\|720p\|WEBRip" >/dev/null
 		then mv ${dir[i]} $HOME/Downloads/videos;
 		else mv ${dir[i]} $target/folders;
 		fi
 	done
 }
 
-video; picture; archive; other;
+video; picture; archive; etc;
 

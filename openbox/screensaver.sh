@@ -1,16 +1,20 @@
 #!/bin/sh
 conf=$HOME/.cache/screensaver
-resetidle=$(xdotool keydown Shift_L keyup Shift_L)
-video=( "youtube\|vimeo\|twitch" "bomi" )
-video2=( "Vivaldi" "bomi" )
+video=( "youtube\|vimeo\|twitch" "bomi" "mpv")
+video2=( "Vivaldi" "bomi" "mpv")
 NL='
 '
+resetidle() {
+		xdotool mousemove_relative --sync -- 5 5  
+		xdotool mousemove_relative --sync -- -5 -5
+}
 screenoff() {
 	if xset -q  | grep -i "monitor is on"; then
 			xset dpms force off
 	fi
 	if ! grep -o 'AutoSuspend.*off' $conf && [ "$(xprintidle)" -ge '3600000' ]; then
-			systemctl suspend && $resetidle
+			systemctl suspend
+			sleep 10 && resetidle
 	fi
 	sleep 2
 }
@@ -70,9 +74,9 @@ while true; do
 	for i in ${!video[*]}; do
 		while wmctrl -l | grep -i "${video[i]}" && \
 		pacmd list-sink-inputs | grep -B12 ${video2[i]} | grep RUNNING; do
-			sleep 5
+			sleep 10
 			if ! pacmd list-sink-inputs | grep -B12 ${video2[i]} | grep RUNNING; then
-				$resetidle
+				resetidle
 			elif pgrep i3lock; then
 				break
 			fi

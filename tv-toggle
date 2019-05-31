@@ -1,19 +1,29 @@
 #!/bin/sh
 DVI="DPY-0: nvidia-auto-select +1920+0 {ForceCompositionPipeline=On}"
 HDMI="DPY-1: nvidia-auto-select +0+0 {ForceCompositionPipeline=On}"
-TV="DPY-4: nvidia-auto-select +3840+0 {ForceCompositionPipeline=On}"
-polyrestart=$($HOME/.config/polybar/launch.sh &>/dev/null &)
+TV="DPY-2: nvidia-auto-select +3840+0 {ForceCompositionPipeline=On}"
 notifyrestart=$(pkill xfce4-notifyd; /usr/lib/xfce4/notifyd/xfce4-notifyd &>/dev/null &)
 
-if nvidia-settings --query CurrentMetaMode | grep +3840; then
-   nvidia-settings --assign CurrentMetaMode="$DVI, $HDMI"
-   $polyrestart
-   $notifyrestart
+if nvidia-settings --query CurrentMetaMode | grep DPY-2; then
+	nvidia-settings --assign CurrentMetaMode="$DVI, $HDMI"
+	killall -q polybar
+	sleep 2
+	while pgrep -u $UID -x polybar >/dev/null; do sleep 1; done
+	polybar left -r &
+	polybar middle -r &
+	polybar right -r &
+	$notifyrestart
 else
-   nvidia-settings --assign CurrentMetaMode="$DVI, $HDMI, $TV"
-   nitrogen --restore &>/dev/null &
-   $polyrestart
-   polybar tv -r &
-   $notifyrestart
-   xdotool mousemove --sync 4800 540
+	nvidia-settings --assign CurrentMetaMode="$DVI, $HDMI, $TV"
+	killall -q polybar
+	sleep 2
+	while pgrep -u $UID -x polybar >/dev/null; do sleep 1; done
+	polybar left -r &
+	polybar middle -r &
+	polybar right -r &
+	sleep 2
+	polybar tv -r &
+	$notifyrestart
+	xdotool mousemove --sync 4800 540
+	nitrogen --restore &>/dev/null &
 fi
