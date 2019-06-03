@@ -1,5 +1,5 @@
 #!/bin/bash
-conf=$HOME/.cache/screensaver
+conf=$HOME/.cache/SSaver.conf
 NL='
 '
 
@@ -10,7 +10,7 @@ Default_suspend="60"
 
 check_conf() {
 	if [ ! -e $conf ];then
-		if [ $(pgrep -c screensaver.sh) == "2" ]; then
+		if [ $(pgrep -c screenblank) == "2" ]; then
 		echo "Screensaver is on" > $conf
 		else
 		echo "Screensaver is off" > $conf
@@ -108,9 +108,9 @@ check_conf
 
 # Options
 if [ -z $1 ]; then
-	case $(pgrep screensaver.sh) in
+	case $(pgrep screenblank) in
 		*"$NL"*)
-			pkill -o screensaver.sh
+			pkill -o screenblank
 			if grep -o 'Screensaver.*on' $conf &> /dev/null; then		
 				notify-send "Screensaver Disabled"
 				sed -i "1s/on/off/" $conf
@@ -137,7 +137,7 @@ elif [ $# == 2 ];then
 			echo "Can't be set higher than Suspend time"
 			exit 1
 			else
-			notify-send "Screen blank set at $2 mins"
+			echo "Screen blank set at $2 mins"
 			sed -i "4s/at.*Mins/at $2 Mins/" $conf
 			fi
 			;;
@@ -146,12 +146,12 @@ elif [ $# == 2 ];then
 			echo "Can't be set higher than Suspend time"
 			exit 1
 			else
-			notify-send "LockScreen blank set at $2 mins"
+			echo "LockScreen blank set at $2 mins"
 			sed -i "5s/at.*Mins/at $2 Mins/" $conf
 			fi
 			;;
 		-as | --adjust_suspend)
-			notify-send "Suspend set at $2 mins"
+			echo "Suspend set at $2 mins"
 			sed -i "6s/at.*Mins/at $2 Mins/" $conf
 			;;
 		*)
