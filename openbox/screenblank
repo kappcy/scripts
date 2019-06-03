@@ -104,6 +104,41 @@ check_lock() {
 	done
 }
 
+usage() {
+	cat <<-EOH
+	screenblank: Screensaver script for finer control over xset. (in my opinion)
+	
+	Usage:
+	screenblank
+	run script without options to toggle on/off
+			
+	screenblank -t | --toggle
+	toggle AutoSuspend on/off
+
+	screenblank -b | --blank
+	blank the screen
+
+	screenblank -s | --status
+	check current configuration
+
+	screenblank -h | --help
+	view usage (this)
+
+	screenblank -r | --reset
+	reset the configuration
+
+	screenblank -ab | --adjust_blank
+	adjust Screen Blank time in minutes
+
+	screenblank -al | --adjust_lockblank
+	adjust LockScreen blank time in minutes
+
+	screenblank -as | --adjust_suspend
+	adjust Suspend time in minutes
+	EOH
+	exit 1
+}
+
 check_conf
 
 # Options
@@ -112,6 +147,7 @@ if [ -z $1 ]; then
 		*"$NL"*)
 			pkill -o screenblank
 			if grep -o 'Screensaver.*on' $conf &> /dev/null; then		
+				echo "\nScreensaver Disabled"
 				notify-send "Screensaver Disabled"
 				sed -i "1s/on/off/" $conf
 			fi
@@ -119,17 +155,19 @@ if [ -z $1 ]; then
 			;;
 		*)
 			if grep -o 'Screensaver.*off' $conf &> /dev/null; then
+				echo "Screensaver Enabled"
 				notify-send "Screensaver Enabled"
 				sed -i "1s/off/on/" $conf
 			fi
 			;;
 	esac
 elif [ $# -ge 3 ];then
-	echo "too many arguments" && exit 1
+	echo -e "(((too many arguments)))\n" 
+	usage
 elif [ $# == 2 ];then
 	check_times
 	if ! [[ $2 =~ ^[.0-9]+$ ]] ; then
-		echo "error: Not a number" && exit 1
+		echo -e "(((error: Not a number)))\n" && usage
 	fi
 	case "$1" in
 		-ab | --adjust_blank)
@@ -155,7 +193,8 @@ elif [ $# == 2 ];then
 			sed -i "6s/at.*Mins/at $2 Mins/" $conf
 			;;
 		*)
-			echo "invalid argument"
+			echo -e "(((invalid argument)))\n"
+			usage
 			;;
 	esac
 	exit 1
@@ -163,9 +202,11 @@ elif [ $# == 1 ];then
 	case "$1" in
 		-t | --toggle)
 			if grep -o 'AutoSuspend.*on' $conf; then
+				echo "AutoSuspend Disabled"
 				notify-send "AutoSuspend Disabled"
 				sed -i "2s/on/off/" $conf
 			else
+				echo "AutoSuspend Enabled"
 				notify-send "AutoSuspend Enabled"
 				sed -i "2s/off/on/" $conf
 			fi
@@ -177,7 +218,12 @@ elif [ $# == 1 ];then
 			exit 1
 			;;
 		-s | --status)
+			echo "$(cat $conf)"
 			notify-send "$(cat $conf)"
+			exit 1
+			;;
+		-h | --help)
+			usage
 			exit 1
 			;;
 		-r | --reset)
@@ -187,8 +233,8 @@ elif [ $# == 1 ];then
 			exit 1
 			;;
 		*)
-			echo "invalid argument"
-			exit 1
+			echo -e "(((invalid argument)))\n"
+			usage
 			;;
 	esac
 fi
