@@ -10,7 +10,7 @@ Default_suspend="60"
 
 check_conf() {
 	if [ ! -e $conf ];then
-		if [ $(pgrep -c dsfsfsfdsdf.sh) == "2" ]; then
+		if [ $(pgrep -c screensaver.sh) == "2" ]; then
 		echo "Screensaver is on" > $conf
 		else
 		echo "Screensaver is off" > $conf
@@ -108,9 +108,9 @@ check_conf
 
 # Options
 if [ -z $1 ]; then
-	case $(pgrep dsfsfsfdsdf.sh) in
+	case $(pgrep screensaver.sh) in
 		*"$NL"*)
-			pkill -o dsfsfsfdsdf.sh
+			pkill -o screensaver.sh
 			if grep -o 'Screensaver.*on' $conf &> /dev/null; then		
 				notify-send "Screensaver Disabled"
 				sed -i "1s/on/off/" $conf
