@@ -22,7 +22,7 @@ check_conf() {
 		echo "Suspend at $Default_suspend Mins" >> $conf
 	fi
 	# Disable xset blanking
-	if ! xset -q | grep "Standby: 0    Suspend: 0    Off: 0" &> /dev/null; then
+	if ! xset -q | grep "prefer blanking:  no" &> /dev/null; then
 		xset s 0 0
 		xset s noblank
 		xset s noexpose
@@ -147,7 +147,7 @@ if [ -z $1 ]; then
 		*"$NL"*)
 			pkill -o screenblank
 			if grep -o 'Screensaver.*on' $conf &> /dev/null; then		
-				echo "\nScreensaver Disabled"
+				echo "Screensaver Disabled"
 				notify-send "Screensaver Disabled"
 				sed -i "1s/on/off/" $conf
 			fi
