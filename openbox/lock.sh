@@ -27,6 +27,5 @@ killtv () {
 killtv
 scrot /tmp/screen.png
 betterlockscreen -u /tmp/screen.png
-rm /tmp/screen.png
 betterlockscreen -l dimblur &
 sleep 1
