@@ -1,7 +1,5 @@
 #!/bin/bash
 conf=$HOME/.config/screenblank.conf
-NL='
-'
 
 # Default timings in minutes
 Default_blank="10"
@@ -10,14 +8,13 @@ Default_suspend="60"
 
 check_conf() {
 	if [ ! -e $conf ]; then
-	cat <<-EOF > $conf
-	screensaver=off
+	cat <<-EOF >> $conf
+	screensaver=on
 	autosuspend=on
 	blank=$Default_blank
 	blanklock=$Default_blanklock
 	suspend=$Default_suspend
 	EOF
-	[[ $(pgrep -c screenblank) == "2" ]] && key=screensaver value=on update
 	fi
 	if xset -q | grep "yes" &> /dev/null; then
 		xset s 0 0
@@ -29,10 +26,10 @@ check_conf() {
 
 update() {
 	sed -i "s/^\($key=\).*/\1$value/" $conf
-	. $conf
 }
 
 check_times() {
+	source $conf
 	times=( "$blank" "$blanklock" "$suspend" )
 	CHK1=${times[@]}
 	CHK2=${timesCHK[@]}
@@ -45,41 +42,29 @@ check_times() {
 	fi
 }
 
-
 resetidle() {
 	xdotool mousemove_relative --sync -- 25 25 
 	xdotool mousemove_relative --sync -- -25 -25
 }
 
 screenoff() {
-	if ! pgrep i3lock && [ "$(xprintidle)" -ge "${timesMS[0]}" ]; then
-		xset dpms force off && screensleep
-	elif pgrep i3lock && [ "$(xprintidle)" -ge "${timesMS[1]}" ]; then
-		xset dpms force off && screensleep
-	else
+	while true; do
+		while pgrep i3lock; do
+			[[ "$(xprintidle)" -ge "${timesMS[1]}" ]] && break
+			sleep 2
+		done
+		[[ ! $(pgrep i3lock) ]] && [[ "$(xprintidle)" -le "${timesMS[0]}" ]] && break
+		xset dpms force off
+		while xset -q  | grep -i "monitor is off"; do
+			sleep 2
+			if [ $autosuspend == on ] && [ "$(xprintidle)" -ge "${timesMS[2]}" ]; then
+				systemctl suspend && sleep 2
+				until xset -q  | grep -i "monitor is on"; do xset dpms force on; done
+				resetidle
+			fi
+		done
+	done
 	sleep 2
-	fi
-}
-
-
-screensleep() {
-	while xset -q  | grep -i "monitor is off"; do
-	sleep 2 && Auto_suspend
-	done
-}
-
-Auto_suspend() {
-	if [ $autosuspend == on ] && [ "$(xprintidle)" -ge "${timesMS[2]}" ]; then
-		systemctl suspend && sleep 10
-		until xset -q  | grep -i "monitor is on"; do xset dpms force on; done
-		resetidle
-	fi
-}
-
-check_lock() {
-	while pgrep i3lock; do
-	sleep 2 && screenoff
-	done
 }
 
 check_vid() {
@@ -88,7 +73,7 @@ check_vid() {
 		for i in ${!video[*]}; do
 			while wmctrl -l | grep -i "${video[i]}" && \
 			pacmd list-sink-inputs | grep -B12 ${video2[i]} | grep RUNNING; do
-				sleep 10
+				sleep 2
 				if ! pacmd list-sink-inputs | grep -B12 ${video2[i]} | grep RUNNING; then
 					resetidle
 				elif pgrep i3lock; then
@@ -148,7 +133,6 @@ usage() {
 	screenblank -as | --adjust_suspend
 	adjust Suspend time in minutes
 	EOH
-	exit 1
 }
 
 status() {
@@ -168,27 +152,58 @@ check_conf
 
 # Options
 if [ -z $1 ]; then
-	case $(pgrep screenblank) in
-		*"$NL"*)
-			pkill -o screenblank
-			if [ $screensaver == on ]; then		
-				echo "Screensaver Disabled"
-				notify-send "Screensaver Disabled"
-				key=screensaver value=off update
+     if [ ! $(pgrep -c screenblank) == "2" ]; then
+        echo "Screensaver Enabled"
+        notify-send "Screensaver Enabled"
+        key=screensaver value=on update
+    else
+        echo "Screensaver Disabled"
+        notify-send "Screensaver Disabled"
+        key=screensaver value=off update
+		pkill -x screenblank
+    fi
+elif [ $# == 1 ];then
+	case "$1" in
+		-t | --toggle)
+			if [ $autosuspend == on ]; then
+				echo "AutoSuspend Disabled"
+				notify-send "AutoSuspend Disabled"
+				key=autosuspend value=off update
+			else
+				echo "AutoSuspend Enabled"
+				notify-send "AutoSuspend Enabled"
+				key=autosuspend value=on update
 			fi
-			exit 1
+			;;
+		-b | --blank)
+			sleep 2
+			xset dpms force off
+			;;
+		-l | --lock)
+			lock
+			;;
+		-s | --status)
+			echo "$(status)"
+			notify-send "$(status)"
+			;;
+		-h | --help)
+			usage
+			;;
+		-r | --reset)
+			rm $conf
+			check_conf
+			echo "conf reset"
+			;;
+		--b4suspend)
+			killtv
+			lock
 			;;
 		*)
-			if [ $screensaver == off ]; then
-				echo "Screensaver Enabled"
-				notify-send "Screensaver Enabled"
-				key=screensaver value=on update
-			fi
+			echo -e "(((invalid argument)))\n"
+			usage
 			;;
 	esac
-elif [ $# -ge 3 ];then
-	echo -e "(((too many arguments)))\n" 
-	usage
+	exit 1
 elif [ $# == 2 ];then
 	check_times
 	if ! [[ $2 =~ ^[.0-9]+$ ]] ; then
@@ -198,7 +213,6 @@ elif [ $# == 2 ];then
 		-ab | --adjust_blank)
 			if echo "$2 >= $suspend" | bc -l | grep -q 1; then
 			echo "Can't be set higher than Suspend time"
-			exit 1
 			else
 			echo "Screen blank set at $2 mins"
 			key=blank value=$2 update
@@ -207,7 +221,6 @@ elif [ $# == 2 ];then
 		-al | --adjust_lockblank)
 			if echo "$2 >= $suspend" | bc -l | grep -q 1; then
 			echo "Can't be set higher than Suspend time"
-			exit 1
 			else
 			echo "LockScreen blank set at $2 mins"
 			key=blanklock value=$2 update
@@ -223,57 +236,13 @@ elif [ $# == 2 ];then
 			;;
 	esac
 	exit 1
-elif [ $# == 1 ];then
-	case "$1" in
-		-t | --toggle)
-			if [ $autosuspend == on ]; then
-				echo "AutoSuspend Disabled"
-				notify-send "AutoSuspend Disabled"
-				key=autosuspend value=off update
-			else
-				echo "AutoSuspend Enabled"
-				notify-send "AutoSuspend Enabled"
-				key=autosuspend value=on update
-			fi
-			exit 1
-			;;
-		-b | --blank)
-			sleep 2
-			xset dpms force off
-			exit 1
-			;;
-		-l | --lock)
-			lock
-			exit 1
-			;;
-		-s | --status)
-			echo "$(status)"
-			notify-send "$(status)"
-			exit 1
-			;;
-		-h | --help)
-			usage
-			exit 1
-			;;
-		-r | --reset)
-			rm $conf
-			check_conf
-			echo "conf reset"
-			exit 1
-			;;
-		--b4suspend)
-			killtv
-			lock
-			exit 1
-			;;
-		*)
-			echo -e "(((invalid argument)))\n"
-			usage
-			;;
-	esac
+else
+	echo -e "(((too many arguments)))\n" 
+	usage
+	exit 1
 fi
 
 # Run Screensaver
 while true; do
-	check_conf; check_times; check_vid; check_lock; screenoff
+	check_conf; check_times; check_vid; screenoff
 done
