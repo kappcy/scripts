@@ -222,7 +222,7 @@ while true; do
 	sleep 2
 	if [[ $(xset -q  | grep -i "monitor is off") ]]; then
 		if [ $autosuspend == on ] && [ "$(xprintidle)" -ge "${timesMS[2]}" ]; then
-			systemctl suspend
+			systemctl suspend && sleep 2
 			until xset -q  | grep -i "monitor is on"; do xset dpms force on; done
 			resetidle
 		fi
