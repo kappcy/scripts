@@ -6,15 +6,16 @@ Default_blank="10"
 Default_blanklock=".5"
 Default_suspend="60"
 
-check_conf() {
-	if [ ! -e $conf ]; then
-	cat <<-EOF >> $conf
-	screensaver=on
-	autosuspend=on
-	blank=$Default_blank
-	blanklock=$Default_blanklock
-	suspend=$Default_suspend
-	EOF
+set_conf() {
+	if [[ ! -e $conf ]]; then
+		cat <<-EOF >> $conf
+		screensaver=on
+		autosuspend=on
+		blank=$Default_blank
+		blanklock=$Default_blanklock
+		suspend=$Default_suspend
+		vid_vid_playing=0
+		EOF
 	fi
 	if xset -q | grep "yes" &> /dev/null; then
 		xset s 0 0
@@ -24,22 +25,30 @@ check_conf() {
 	fi
 }
 
-update() {
-	sed -i "s/^\($key=\).*/\1$value/" $conf
-}
-
-check_times() {
+set_times() {
 	source $conf
 	times=( "$blank" "$blanklock" "$suspend" )
 	CHK1=${times[@]}
 	CHK2=${timesCHK[@]}
-	if [ ! "$CHK1" == "$CHK2" ]; then
-	timesMS=() timesCHK=()
-	for i in ${!times[*]}; do
-		MS=$(echo "${times[i]}*60000-2000" | bc -l)
-		timesMS+=(${MS%.*}) timesCHK+=(${times[i]})
+	if [ "$CHK1" != "$CHK2" ]; then
+		timesMS=() timesCHK=()
+		for i in ${!times[*]}; do
+			MS=$(echo "${times[i]}*60000-2000" | bc -l)
+			timesMS+=(${MS%.*}) timesCHK+=(${times[i]})
 		done
 	fi
+}
+
+if_video() {
+	media=( "youtube\|vimeo\|twitch" "bomi" "mpv")
+	media2=( "Vivaldi" "bomi" "mpv")
+	for i in ${!media[*]}; do
+		if [[ $(wmctrl -l | grep -i "${media[i]}") ]] && \
+		[[ $(pacmd list-sink-inputs | grep -B12 ${media2[i]} | grep RUNNING) ]]
+		then vid_playing=1 && break
+		else vid_playing=0
+		fi
+	done
 }
 
 resetidle() {
@@ -47,46 +56,14 @@ resetidle() {
 	xdotool mousemove_relative --sync -- -25 -25
 }
 
-screenoff() {
-	while true; do
-		while pgrep i3lock; do
-			[[ "$(xprintidle)" -ge "${timesMS[1]}" ]] && break
-			sleep 2
-		done
-		[[ ! $(pgrep i3lock) ]] && [[ "$(xprintidle)" -le "${timesMS[0]}" ]] && break
-		xset dpms force off
-		while xset -q  | grep -i "monitor is off"; do
-			sleep 2
-			if [ $autosuspend == on ] && [ "$(xprintidle)" -ge "${timesMS[2]}" ]; then
-				systemctl suspend && sleep 2
-				until xset -q  | grep -i "monitor is on"; do xset dpms force on; done
-				resetidle
-			fi
-		done
-	done
-	sleep 2
-}
-
-check_vid() {
-	video=( "youtube\|vimeo\|twitch" "bomi" "mpv")
-	video2=( "Vivaldi" "bomi" "mpv")
-		for i in ${!video[*]}; do
-			while wmctrl -l | grep -i "${video[i]}" && \
-			pacmd list-sink-inputs | grep -B12 ${video2[i]} | grep RUNNING; do
-				sleep 2
-				if ! pacmd list-sink-inputs | grep -B12 ${video2[i]} | grep RUNNING; then
-					resetidle
-				elif pgrep i3lock; then
-					break
-				fi
-			done
-		done
+update() {
+	sed -i "s/^\($key=\).*/\1$value/" $conf
 }
 
 killtv() {
 	DVI="DPY-0: nvidia-auto-select +1920+0 {ForceCompositionPipeline=On}"
 	HDMI="DPY-1: nvidia-auto-select +0+0 {ForceCompositionPipeline=On}"
-	if nvidia-settings --query CurrentMetaMode | grep +3840 &> /dev/null; then
+	if [[ $(nvidia-settings --query CurrentMetaMode | grep +3840) ]]; then
 	   nvidia-settings --assign CurrentMetaMode="$DVI, $HDMI"
 	   sleep 1
 	fi
@@ -96,6 +73,18 @@ lock() {
 	scrot /tmp/screen.png
 	betterlockscreen -u /tmp/screen.png
 	betterlockscreen -l dimblur
+}
+
+status() {
+	cat <<-EOH
+	Screensaver is $screensaver
+	AutoSuspend is $autosuspend
+	-----------------------
+	Blank Screen at $blank Mins
+	Blank LockScreen at $blanklock Mins
+	Suspend at $suspend Mins
+
+	EOH
 }
 
 usage() {
@@ -135,24 +124,12 @@ usage() {
 	EOH
 }
 
-status() {
-	cat <<-EOH
-	Screensaver is $screensaver
-	AutoSuspend is $autosuspend
-	-----------------------
-	Blank Screen at $blank Mins
-	Blank LockScreen at $blanklock Mins
-	Suspend at $suspend Mins
-
-	EOH
-}
-
-check_conf
+set_conf
 . $conf
 
 # Options
-if [ -z $1 ]; then
-     if [ ! $(pgrep -c screenblank) == "2" ]; then
+if [[ -z $1 ]]; then
+     if [[ ! $(pgrep -c screenblank) == "2" ]]; then
         echo "Screensaver Enabled"
         notify-send "Screensaver Enabled"
         key=screensaver value=on update
@@ -162,10 +139,10 @@ if [ -z $1 ]; then
         key=screensaver value=off update
 		pkill -x screenblank
     fi
-elif [ $# == 1 ];then
+elif [[ $# == 1 ]];then
 	case "$1" in
 		-t | --toggle)
-			if [ $autosuspend == on ]; then
+			if [[ $autosuspend == on ]]; then
 				echo "AutoSuspend Disabled"
 				notify-send "AutoSuspend Disabled"
 				key=autosuspend value=off update
@@ -191,7 +168,7 @@ elif [ $# == 1 ];then
 			;;
 		-r | --reset)
 			rm $conf
-			check_conf
+			set_conf
 			echo "conf reset"
 			;;
 		--b4suspend)
@@ -204,11 +181,9 @@ elif [ $# == 1 ];then
 			;;
 	esac
 	exit 1
-elif [ $# == 2 ];then
-	check_times
-	if ! [[ $2 =~ ^[.0-9]+$ ]] ; then
-		echo -e "(((error: Not a number)))\n" && usage
-	fi
+elif [[ $# == 2 ]];then
+	[[ ! $2 =~ ^[.0-9]+$ ]] && \
+	echo -e "(((error: Not a number)))\n" && usage
 	case "$1" in
 		-ab | --adjust_blank)
 			if echo "$2 >= $suspend" | bc -l | grep -q 1; then
@@ -237,12 +212,30 @@ elif [ $# == 2 ];then
 	esac
 	exit 1
 else
-	echo -e "(((too many arguments)))\n" 
+	echo -e "(((invalid argument)))\n" 
 	usage
 	exit 1
 fi
 
-# Run Screensaver
+# Running it
 while true; do
-	check_conf; check_times; check_vid; screenoff
+	sleep 2
+	if [[ $(xset -q  | grep -i "monitor is off") ]]; then
+		if [ $autosuspend == on ] && [ "$(xprintidle)" -ge "${timesMS[2]}" ]; then
+			systemctl suspend
+			until xset -q  | grep -i "monitor is on"; do xset dpms force on; done
+			resetidle
+		fi
+		continue
+	elif [[ $(pgrep i3lock) ]]; then
+		[[ "$(xprintidle)" -le "${timesMS[1]}" ]] && continue
+	else
+		if [ $vid_playing == 1 ]; then
+			if_video; [[ $vid_playing == 0 ]] && resetidle
+			continue
+		fi
+		set_conf; set_times; if_video;
+		[[ "$(xprintidle)" -le "${timesMS[0]}" ]] && continue
+	fi
+	xset dpms force off
 done
