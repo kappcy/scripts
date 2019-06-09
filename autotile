@@ -15,7 +15,6 @@ for i in ${!array[*]}; do
 				((c++))
 				[[ $(TurtleDotShell) ]] && break 2
 				sleep 1
-				echo "moo"
 			done
 			echo "${array[i]^} not found, SKIPPING" | tr -d ':"'
 			continue 2	
