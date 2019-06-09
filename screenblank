@@ -14,7 +14,6 @@ set_conf() {
 		blank=$Default_blank
 		blanklock=$Default_blanklock
 		suspend=$Default_suspend
-		vid_vid_playing=0
 		EOF
 	fi
 	if xset -q | grep "yes" &> /dev/null; then
@@ -124,6 +123,7 @@ usage() {
 	EOH
 }
 
+vid_playing=0
 set_conf
 . $conf
 
