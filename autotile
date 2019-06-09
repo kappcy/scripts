@@ -8,16 +8,16 @@ TurtleDotShell() {
 }
 
 for i in ${!array[*]}; do
-		until TurtleDotShell &> /dev/null; do
-			c=0
-			while [[ $c -lt 10 ]]; do
-				((c++))
-				[[ $(TurtleDotShell) ]] && break 2
-				sleep 1
-			done
-			echo "${array[i]^} not found, SKIPPING" | tr -d ':"'
-			continue 2	
+	until TurtleDotShell &> /dev/null; do
+		c=0
+		while [[ $c -lt 10 ]]; do
+			((c++))
+			[[ $(TurtleDotShell) ]] && break 2
+			sleep 1
 		done
+		echo "${array[i]^} not found, SKIPPING" | tr -d ':"'
+		continue 2	
+	done
 	HWID=$(TurtleDotShell | awk '{print $1}' | head -n1)
 	WID=$(printf %i $HWID)
 	sleep .2
