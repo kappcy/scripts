@@ -168,7 +168,6 @@ elif [[ $# == 1 ]];then
 			;;
 		-r | --reset)
 			rm $conf
-			set_conf
 			echo "conf reset"
 			;;
 		--b4suspend)
