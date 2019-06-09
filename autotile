@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 array=( 'termite' 'pcmanfm' 'Discord":' 'Vivaldi":' )
 array2=( "1920 552" "1920 24" "2880 24" "259 151" )
 array3=( "958 526" "958 526" "958 1054" "1400 800" )
@@ -8,8 +8,7 @@ TurtleDotShell() {
 }
 
 for i in ${!array[*]}; do
-	{
-		until TurtleDotShell; do
+		until TurtleDotShell &> /dev/null; do
 			c=0
 			while [[ $c -lt 10 ]]; do
 				((c++))
@@ -19,7 +18,6 @@ for i in ${!array[*]}; do
 			echo "${array[i]^} not found, SKIPPING" | tr -d ':"'
 			continue 2	
 		done
-	} &> /dev/null
 	HWID=$(TurtleDotShell | awk '{print $1}' | head -n1)
 	WID=$(printf %i $HWID)
 	sleep .2
