@@ -71,7 +71,7 @@ killtv() {
 lock() {
 	scrot /tmp/screen.png
 	betterlockscreen -u /tmp/screen.png
-	betterlockscreen -l dimblur
+	betterlockscreen -l dimblur &
 }
 
 status() {
@@ -177,9 +177,10 @@ elif [[ $# == 1 ]];then
 		*)
 			echo -e "(((invalid argument)))\n"
 			usage
+			exit 1
 			;;
 	esac
-	exit 1
+	exit 0
 elif [[ $# == 2 ]];then
 	[[ ! $2 =~ ^[.0-9]+$ ]] && \
 	echo -e "(((error: Not a number)))\n" && usage
@@ -187,6 +188,7 @@ elif [[ $# == 2 ]];then
 		-ab | --adjust_blank)
 			if echo "$2 >= $suspend" | bc -l | grep -q 1; then
 			echo "Can't be set higher than Suspend time"
+			exit 1
 			else
 			echo "Screen blank set at $2 mins"
 			key=blank value=$2 update
@@ -195,6 +197,7 @@ elif [[ $# == 2 ]];then
 		-al | --adjust_lockblank)
 			if echo "$2 >= $suspend" | bc -l | grep -q 1; then
 			echo "Can't be set higher than Suspend time"
+			exit 1
 			else
 			echo "LockScreen blank set at $2 mins"
 			key=blanklock value=$2 update
@@ -207,9 +210,10 @@ elif [[ $# == 2 ]];then
 		*)
 			echo -e "(((invalid argument)))\n"
 			usage
+			exit 1
 			;;
 	esac
-	exit 1
+	exit 0
 else
 	echo -e "(((invalid argument)))\n" 
 	usage
@@ -220,16 +224,16 @@ fi
 while true; do
 	sleep 2
 	if [[ $(xset -q  | grep -i "monitor is off") ]]; then
-		if [ $autosuspend == on ] && [ "$(xprintidle)" -ge "${timesMS[2]}" ]; then
-			systemctl suspend && sleep 2
+		if_video; [[ $vid_playing == 0 ]] && \
+		if [[ $autosuspend == on ]] && [[ "$(xprintidle)" -ge "${timesMS[2]}" ]]; then
+			systemctl suspend && resetidle
 			until xset -q  | grep -i "monitor is on"; do xset dpms force on; done
-			resetidle
 		fi
 		continue
 	elif [[ $(pgrep i3lock) ]]; then
 		[[ "$(xprintidle)" -le "${timesMS[1]}" ]] && continue
 	else
-		if [ $vid_playing == 1 ]; then
+		if [[ $vid_playing == 1 ]]; then
 			if_video; [[ $vid_playing == 0 ]] && resetidle
 			continue
 		fi
