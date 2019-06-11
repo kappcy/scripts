@@ -6,7 +6,7 @@ for i in ${!Screen[*]}; do
 	xwinwrap -g ${Screen[i]} -ni -ov -- mpv -wid WID ${Screen1[i]} --no-osc --no-osd-bar --loop-file \
 	--player-operation-mode=cplayer --no-audio --panscan=1.0 --no-stop-screensaver &
 done
-until pgrep i3lock; do sleep 5; done
+until pgrep i3lock; do sleep 2; done
 killall xwinwrap
 while pgrep i3lock; do sleep 1; done
 done
