@@ -1,5 +1,5 @@
 #!/bin/bash
-vid=( ".mkv" ".mp4" ".avi" )
+vid=( ".mkv" ".mp4" ".avi" ".webm" )
 pic=( ".bmp" ".gif" ".jpeg" ".jpg" ".png" ".svg" )
 arc=( ".zip" ".tar" ".rar" ".7z" )
 
@@ -14,7 +14,7 @@ video() {
 	if ls "$place" | grep -i ${vid[i]} >/dev/null; then
 		name=($(find $place -maxdepth 1 -type f \( -iname \*${vid[i]} \)))
 		for i in ${!name[*]}; do
-			mv ${name[i]} $target
+			mv -i ${name[i]} $target
 		done
 	fi
 	done
@@ -36,10 +36,10 @@ picture() {
 				elif [ $ext == ".jpeg" ] || [ $ext == ".jpg" ];then
 					convert ${name[i]} $target/$hash.png && rm ${name[i]}
 				elif [ $ext == ".png" ];then
-					mv ${name[i]} $target/$hash$ext
+					mv -i ${name[i]} $target/$hash$ext
 				else		
 					[[ ! -d $target/other ]] && mkdir $target/other
-					mv ${name[i]} $target/other/$hash$ext
+					mv -i ${name[i]} $target/other/$hash$ext
 				fi
 			done
 		fi
@@ -54,7 +54,7 @@ archive() {
 		if ls "$place" | grep -i ${arc[i]} >/dev/null; then
 			name=($(find $place -maxdepth 1 -type f \( -iname \*${arc[i]} \)))
 			for i in ${!name[*]}; do
-				mv ${name[i]} $target
+				mv -i ${name[i]} $target
 			done
 		fi
 	done
@@ -73,8 +73,8 @@ etc() {
 	for i in ${!dir[*]}; do
 		[[ ! -d $target/folders ]] && mkdir $target/folders
 		if echo "${dir[i]}" | grep "1080p\|720p\|WEBRip" >/dev/null
-		then mv ${dir[i]} $HOME/Downloads/videos;
-		else mv ${dir[i]} $target/folders;
+		then mv -i ${dir[i]} $HOME/Downloads/videos;
+		else mv -i ${dir[i]} $target/folders;
 		fi
 	done
 }
