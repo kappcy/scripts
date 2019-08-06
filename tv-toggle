@@ -1,29 +1,29 @@
-#!/bin/sh
-DVI="DPY-0: nvidia-auto-select +1920+0 {ForceCompositionPipeline=On}"
-HDMI="DPY-1: nvidia-auto-select +0+0 {ForceCompositionPipeline=On}"
-TV="DPY-2: nvidia-auto-select +3840+0 {ForceCompositionPipeline=On}"
-notifyrestart=$(pkill xfce4-notifyd; /usr/lib/xfce4/notifyd/xfce4-notifyd &>/dev/null &)
+#!/bin/bash
 
-if nvidia-settings --query CurrentMetaMode | grep DPY-2; then
-	nvidia-settings --assign CurrentMetaMode="$DVI, $HDMI"
-	killall -q polybar
-	sleep 2
-	while pgrep -u $UID -x polybar >/dev/null; do sleep 1; done
-	polybar left -r &
-	polybar middle -r &
-	polybar right -r &
-	$notifyrestart
-else
-	nvidia-settings --assign CurrentMetaMode="$DVI, $HDMI, $TV"
-	killall -q polybar
-	sleep 2
-	while pgrep -u $UID -x polybar >/dev/null; do sleep 1; done
-	polybar left -r &
-	polybar middle -r &
-	polybar right -r &
-	sleep 2
-	polybar tv -r &
-	$notifyrestart
-	xdotool mousemove --sync 4800 540
-	nitrogen --restore &>/dev/null &
-fi
+enabled=$(nvidia-settings --query CurrentMetaMode | egrep -o "DPY-[0-9]")
+connected=$(nvidia-settings -q dpys | grep "connected" | egrep -o "dpy:[0-9]")
+screens=( "+1920+0" "+0+0" )
+screens2=($enabled)
+
+actions () {
+	$HOME/.config/polybar/launch.sh &
+	pkill xfce4-notifyd && /usr/lib/xfce4/notifyd/xfce4-notifyd &
+	nitrogen --restore &
+	[[ $(echo "$commands" | grep "+3840+0") ]] && \
+	xdotool mousemove --sync 4800 540 || \
+	xdotool mousemove --sync 2880 540
+}
+
+[[ $(echo "$enabled" | grep -c "DPY") -eq 2 ]] && \
+[[ $(echo "$connected" | grep -c "dpy") -eq 3 ]] && \
+screens+=( "+3840+0" )
+
+for i in ${!screens[*]}; do
+command="${screens2[i]}: nvidia-auto-select ${screens[i]} {ForceCompositionPipeline=On}"
+screenlist+=("$command,")
+done
+commands=${screenlist[@]}
+nvidia-settings --assign CurrentMetaMode="${commands%,}"
+xset dpms force off
+sleep 4
+actions &>/dev/null &
