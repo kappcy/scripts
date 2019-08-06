@@ -3,23 +3,22 @@ array=( 'termite' 'pcmanfm' 'Discord":' 'Vivaldi":' )
 array2=( "1920 552" "1920 24" "2880 24" "259 151" )
 array3=( "958 526" "958 526" "958 1054" "1400 800" )
 
-TurtleDotShell() {
-	xwininfo -root -tree | grep -o "0x.*${array[i]}.*+1 "
-}
-
 for i in ${!array[*]}; do
-	until TurtleDotShell &> /dev/null; do
-		c=0
-		while [[ $c -lt 10 ]]; do
-			((c++))
-			[[ $(TurtleDotShell) ]] && break 2
-			sleep 1
-		done
-		echo "${array[i]^} not found, SKIPPING" | tr -d ':"'
-		continue 2	
+	c=0
+	until [[ `xwininfo -root -tree | grep -o ${array[i]}'.*+1 '` ]]; do
+		[[ "$c" == "10" ]] && {
+			echo "${array[i]^} not found, SKIPPING" | tr -d ':"'
+			continue 2
+		}
+		sleep 1
+		((c++))
+		[[ `xwininfo -root -tree | grep -o ${array[i]}'.*+1 '` ]] && {
+			c=0
+			break
+		}
 	done
-	HWID=$(TurtleDotShell | awk '{print $1}' | head -n1)
-	WID=$(printf %i $HWID)
+	HWID=`xwininfo -root -tree | grep -o "0x.*${array[i]}.*+1 " | awk '{print $1}' | head -n1`
+	WID=`printf %i $HWID`
 	sleep .2
 	wmctrl -i -r $HWID -b remove,maximized_vert,maximized_horz
 	xdotool windowmove $WID ${array2[i]}
@@ -28,4 +27,4 @@ for i in ${!array[*]}; do
 	wmctrl -i -r $HWID -b add,maximized_vert,maximized_horz
 	wmctrl -iR $HWID
 	echo "${array[i]^} tiled" | tr -d ':"'
-done
+done	
