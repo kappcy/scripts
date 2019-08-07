@@ -36,16 +36,16 @@ task_watch() {
 }
 
 removal() {
-		for i in ${!task_removed[*]}; do
+	for i in ${!task_removed[*]}; do
 		echo "${task_removed[i]} removed"
 		removed=(`echo "$task_list" | grep -o "${task_removed[i]}=[0-1]"`)
 		new_task_array+=(`echo ${task_array[@]} | grep -o "$removed"`)
-		done
-		task_array=(`echo ${task_array[@]} ${new_task_array[@]} | \
-		tr ' ' '\n' | sort | uniq -u`)
-		unset new_task_array
-		CHK2=(${CHK1[@]})
-		sleep .5
+	done
+	task_array=(`echo ${task_array[@]} ${new_task_array[@]} | \
+	tr ' ' '\n' | sort | uniq -u`)
+	unset new_task_array
+	CHK2=(${CHK1[@]})
+	sleep .5
 }
 
 # Running it
