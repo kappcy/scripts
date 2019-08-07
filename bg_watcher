@@ -1,0 +1,57 @@
+#!/bin/bash
+cfg_folder="$HOME/scripts/bg_checks/*"
+
+checks () {
+	sed -n "/Check_$1/,/END/p" $f | head -n -1 | tail -n +3
+}
+
+update() {
+	task_status=(`echo "$task_list" | grep -o "$task=[0-1]"`)
+	[[ `echo "${task_array[@]}" | grep "$task=$2"` ]] && {
+		echo "$task $1"
+		task_array=("${task_list/$task_status/$task=$3}")
+		(checks $4) | bash
+	}
+}
+
+task_watch() {
+	unset CHK1
+	for f in $cfg_folder; do
+		[[ ! -e "$f" ]] && break
+		[[ -d "$f" ]] && continue
+		task=`grep "Task=" $f | grep -o '".*"' | tr -d '"'`
+		cmd=`grep "Check=" $f | grep -o '".*"' | tr -d '"'`
+		CHK1+=("$task")
+		[[ ! `echo "${task_array[@]}" | grep "$task"` ]] && {
+			echo "$task added"
+			task_array+=("$task=0")
+			CHK2+=("$task")
+		}
+		task_list=${task_array[@]}		
+		[[ `$cmd` ]] && update loaded 0 1 yes
+		[[ ! `$cmd` ]] && update unloaded 1 0 no
+	done
+	task_removed=(`echo "${CHK1[@]}" "${CHK2[@]}" | \
+	tr ' ' '\n' | sort | uniq -u`)
+}
+
+removal() {
+		for i in ${!task_removed[*]}; do
+		echo "${task_removed[i]} removed"
+		removed=(`echo "$task_list" | grep -o "${task_removed[i]}=[0-1]"`)
+		new_task_array+=(`echo ${task_array[@]} | grep -o "$removed"`)
+		done
+		task_array=(`echo ${task_array[@]} ${new_task_array[@]} | \
+		tr ' ' '\n' | sort | uniq -u`)
+		unset new_task_array
+		CHK2=(${CHK1[@]})
+		sleep .5
+}
+
+# Running it
+while true; do
+	sleep 2
+	task_watch
+	[[ -n ${task_removed[@]} ]] && removal
+	echo "${task_array[@]}"
+done
