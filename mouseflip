@@ -1,13 +1,19 @@
 #!/bin/sh
-X=$(xdotool getmouselocation | grep -Po '(?<=^x:)\w+')
-array=( "0" "1920" "3840" )
-array2=( "1920" "3840" "5760" )
-array3=( "2880" "4800" "960" )
-if ! nvidia-settings --query CurrentMetaMode | grep +3840 > /dev/null; then
-array3=( "2880" "960" )
-fi
-for i in ${!array[*]}; do
-if [ $X -gt ${array[i]} -a $X -lt ${array2[i]} ]; then
-	xdotool mousemove --sync ${array3[i]} 540
-fi
-done
+pointed_monitor=$(bspc query -M -m pointed --names)
+
+move_mouse() {
+	[[ "$pointed_monitor" = "$1" ]] && {
+		xdotool mousemove --sync $2 $3
+		bspc monitor pointed -f
+	}
+}
+
+[[ $(nvidia-settings --query CurrentMetaMode) = *DPY-2* ]] && {
+	move_mouse DVI-D-0 2048 1080
+	move_mouse HDMI-0 6016 540
+	move_mouse DP-0 7936 540
+} || {
+	move_mouse DVI-D-0 960 540
+	move_mouse HDMI-0 2880 540
+}
+

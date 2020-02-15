@@ -8,6 +8,8 @@ done
 wid=`xdotool search --onlyvisible --name "Volume Control"` 
 wid1=`xdotool search --name "Volume Control"`
 
+bspc monitor pointed -f
+
 if [[ -n $wid ]]
 then xdotool windowunmap $wid
 else

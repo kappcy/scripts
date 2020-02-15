@@ -1,29 +1,24 @@
 #!/bin/bash
 conf=$HOME/.config/screenblank.conf
 
-# Default timings in minutes
-Default_blank="10"
-Default_blanklock=".5"
-Default_lock="30"
-Default_suspend="60"
-
 set_conf() {
-	if [[ ! -e $conf ]]; then
-		cat <<-EOF >> $conf
-		screensaver=on
-		autosuspend=on
-		autolock=on
-		blank=$Default_blank
-		blanklock=$Default_blanklock
-		lock=$Default_lock
-		suspend=$Default_suspend
-		EOF
-	elif xset -q | grep "yes" &> /dev/null; then
-		xset s 0 0
-		xset s noblank
-		xset s noexpose
-		xset dpms 0 0 0
-	fi
+	[[ ! -e $conf ]] && {
+    cat <<-EOF >> $conf
+    screenblank=on
+    autosuspend=on
+    autolock=on
+    blank="10"
+    blanklock=".5"
+    lock="30"
+    suspend="60"
+	EOF
+    }
+	[[ $(xset -q) == *"yes"* ]] && {
+	xset s 0 0
+	xset s noblank
+	xset s noexpose
+	xset dpms 0 0 0
+	}
 }
 
 set_times() {
@@ -41,50 +36,48 @@ set_times() {
 }
 
 if_video() {
-	media=( "youtube\|vimeo\|twitch" "bomi" "mpv")
-	media2=( "Vivaldi" "bomi" "mpv")
+	media=( "youtube\|vimeo\|twitch" "bomi" "mpv" )
+	media2=( "Vivaldi\|Chromium" "bomi" "mpv" )
 	for i in ${!media[*]}; do
-		if [[ $(wmctrl -l | grep -i "${media[i]}") ]] && \
-		[[ $(pacmd list-sink-inputs | grep -B12 ${media2[i]} | grep RUNNING) ]]
-		then vid_playing=1; break
-		else vid_playing=0
-		fi
+		[[ $(pacmd list-sink-inputs | grep -B12 ${media2[i]}) == *"RUNNING"* ]] || continue
+		[[ $(wmctrl -l | grep -i ${media[i]}) ]] && return 0
 	done
+	return 1
 }
 
 resetidle() {
-	xdotool mousemove_relative --sync -- 25 25 
+	xdotool mousemove_relative --sync -- 25 25
 	xdotool mousemove_relative --sync -- -25 -25
 }
 
 update() {
-	sed -i "s/^\($key=\).*/\1$value/" $conf
+	sed -i "s/^\($1=\).*/\1$2/" $conf
 }
 
-killtv() {
-	DVI="DPY-0: nvidia-auto-select +1920+0 {ForceCompositionPipeline=On}"
-	HDMI="DPY-1: nvidia-auto-select +0+0 {ForceCompositionPipeline=On}"
-	[[ $(nvidia-settings --query CurrentMetaMode | grep +3840) ]] && \
-	nvidia-settings --assign CurrentMetaMode="$DVI, $HDMI"
-}
-
-bls() {
-	scrot /tmp/screen.png
-	betterlockscreen -u /tmp/screen.png
-	betterlockscreen -l dimblur &
+sxl() {
+	[[ $(nvidia-settings --query CurrentMetaMode) = *DPY-2* ]] && \
+    $HOME/scripts/tv-toggle &
+    xfconf-query xfconf-query -c xfce4-notifyd -p /do-not-disturb -s true
+	sxlock && \
+	xfconf-query xfconf-query -c xfce4-notifyd -p /do-not-disturb -s false
 }
 
 notify() {
-	echo "$message"
+	echo "$1"
 	[[ $(pgrep xfce4-notifyd) ]] && \
-	notify-send "$message"
+	notify-send "$1"
 }
 
 status() {
+	if_video && \
+	vid_playing="playing" || \
+	vid_playing="not playing"
+
 	cat <<-EOH
-	Screensaver is $screensaver
+	screenblank is $screenblank
 	AutoLock is $autolock
 	AutoSuspend is $autosuspend
+	Video is $vid_playing
 	-----------------------
 	Blank Screen at $blank Mins
 	Blank LockScreen at $blanklock Mins
@@ -96,12 +89,12 @@ status() {
 
 usage() {
 	cat <<-EOH
-	screenblank: Screensaver script for finer control over xset. (in my opinion)
-	
+	screenblank: DPMS bash script for finer control over xset. (in my opinion)
+
 	Usage:
 	screenblank
 	run script without options to toggle on/off
-			
+
 	screenblank -ts | --toggle_suspend
 	toggle AutoSuspend on/off
 
@@ -137,38 +130,37 @@ usage() {
 	EOH
 }
 
-vid_playing=0
 set_conf
 . $conf
 
 # Options
 if [[ -z $1 ]]; then
      if [[ ! $(pgrep -c screenblank) == "2" ]]; then
-        message="Screensaver Enabled" notify
-        key=screensaver value=on update
+        notify "screenblank Enabled"
+        update screenblank on
     else
-		message="Screensaver Disabled" notify
-		key=screensaver value=off update
+		notify "screenblank Disabled"
+		update screenblank off
 		pkill -x screenblank
     fi
 elif [[ $# == 1 ]];then
 	case "$1" in
 		-ts | --toggle_suspend)
 			if [[ $autosuspend == on ]]; then
-				message="AutoSuspend Disabled" notify
-				key=autosuspend value=off update
+				notify "AutoSuspend Disabled"
+				update autosuspend off
 			else
-				message="AutoSuspend Enabled" notify
-				key=autosuspend value=on update
+				notify "AutoSuspend Enabled"
+				update autosuspend on
 			fi
 			;;
 		-tl | --toggle_lock)
 			if [[ $autolock == on ]]; then
-				message="AutoLock Disabled" notify
-				key=autolock value=off update
+				notify "AutoLock Disabled"
+				update autolock off
 			else
-				message="AutoLock Enabled" notify
-				key=autolock value=on update
+				notify "AutoLock Enabled"
+				update autolock on
 			fi
 			;;
 		-b | --blank)
@@ -176,10 +168,10 @@ elif [[ $# == 1 ]];then
 			xset dpms force off
 			;;
 		-l | --lock)
-			bls
+			[[ ! $(pidof sxlock) ]] && (sxl) &
 			;;
 		-s | --status)
-			message="$(status)" notify
+			notify "$(status)"
 			;;
 		-h | --help)
 			usage
@@ -187,10 +179,6 @@ elif [[ $# == 1 ]];then
 		-r | --reset)
 			rm $conf
 			echo "conf reset"
-			;;
-		--b4suspend)
-			killtv
-			bls
 			;;
 		*)
 			echo -e "(((invalid argument)))\n"
@@ -211,7 +199,7 @@ elif [[ $# == 2 ]];then
 			exit 1
 			fi
 			echo "Screen blank set at $2 mins"
-			key=blank value=$2 update
+			update blank $2
 			;;
 		-alb | --adjust_ls_blank)
 			if echo "$2 >= $suspend" | bc -l | grep -q 1; then
@@ -219,7 +207,7 @@ elif [[ $# == 2 ]];then
 			exit 1
 			fi
 			echo "LockScreen blank set at $2 mins"
-			key=blanklock value=$2 update
+			update blanklock $2
 			;;
 		-al | --adjust_lock)
 			if echo "$2 >= $suspend" | bc -l | grep -q 1; then
@@ -230,11 +218,11 @@ elif [[ $# == 2 ]];then
 			exit 1
 			fi
 			echo "AutoLock set at $2 mins"
-			key=lock value=$2 update
+			update lock $2
 			;;
 		-as | --adjust_suspend)
 			echo "AutoSuspend set at $2 mins"
-			key=suspend value=$2 update
+			update suspend $2
 			;;
 		*)
 			echo -e "(((invalid argument)))\n"
@@ -244,34 +232,41 @@ elif [[ $# == 2 ]];then
 	esac
 	exit 0
 else
-	echo -e "(((invalid argument)))\n" 
+	echo -e "(((invalid argument)))\n"
 	usage
 	exit 1
 fi
 
 # Running it
 while true; do
-	sleep 2
+	read -t 2 <> <(:)
 	echo "$(xprintidle)"
-	if [[ $(xset -q  | grep -i "monitor is off") ]]; then
-		if_video; [[ $vid_playing == 0 ]] && {
-		[[ $autolock == on ]] && [[ "$(xprintidle)" -ge "${timesMS[2]}" ]] && bls
-		[[ $autosuspend == on ]] && [[ "$(xprintidle)" -ge "${timesMS[3]}" ]] && {
-			systemctl suspend && resetidle
-			until xset -q  | grep -i "monitor is on"; do xset dpms force on; done
-		}
+	if [[ $(xset -q) == *"Monitor is Off"* ]]; then
+		if_video || {
+			[[ $autolock == on ]] && \
+			[[ "$(xprintidle)" -ge "${timesMS[2]}" ]] && \
+			[[ ! $(pidof sxlock) ]] && (sxl) &
+			[[ $autosuspend == on ]] && \
+			[[ "$(xprintidle)" -ge "${timesMS[3]}" ]] && {
+				systemctl suspend && resetidle
+				until [[ $(xset -q) == *"Monitor is On"* ]]; do
+				xset dpms force on
+				done
+			}
 		continue
 		}
-	elif [[ $(pgrep i3lock) ]]; then
+	elif [[ $(pidof sxlock) ]]; then
 		[[ "$(xprintidle)" -le "${timesMS[1]}" ]] && continue
 	else
-		[[ $vid_playing == 1 ]] && {
-			if_video; [[ $vid_playing == 0 ]] && resetidle
+		while if_video; do
 			echo "Video is playing"
-			continue
-		}
-		set_conf; set_times; if_video;
+			read -t 2 <> <(:)
+			if_video || resetidle
+			[[ $(pidof sxlock) ]] && break
+		done
+		set_conf; set_times;
 		[[ "$(xprintidle)" -le "${timesMS[0]}" ]] && continue
 	fi
 	xset dpms force off
 done
+

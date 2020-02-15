@@ -27,7 +27,7 @@ task_watch() {
 			task_array+=("$task=0")
 			CHK2+=("$task")
 		}
-		task_list=${task_array[@]}		
+		task_list=${task_array[@]}
 		[[ `$cmd` ]] && update loaded 0 1 yes
 		[[ ! `$cmd` ]] && update unloaded 1 0 no
 	done
@@ -50,7 +50,7 @@ removal() {
 
 # Running it
 while true; do
-	sleep 2
+	read -t 2 <> <(:)
 	task_watch
 	[[ -n ${task_removed[@]} ]] && removal
 	echo "${task_array[@]}"

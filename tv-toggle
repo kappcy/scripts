@@ -1,29 +1,38 @@
 #!/bin/bash
 
-enabled=$(nvidia-settings --query CurrentMetaMode | egrep -o "DPY-[0-9]")
-connected=$(nvidia-settings -q dpys | grep "connected" | egrep -o "dpy:[0-9]")
-screens=( "+1920+0" "+0+0" )
-screens2=($enabled)
+screen() { echo "$1: nvidia-auto-select $2 {ForceCompositionPipeline=On}" ; }
 
-actions () {
-	$HOME/.config/polybar/launch.sh &
-	pkill xfce4-notifyd && /usr/lib/xfce4/notifyd/xfce4-notifyd &
+[[ $(nvidia-settings --query CurrentMetaMode) = *DPY-2* ]] && {
+	nvidia-settings -a CurrentMetaMode="$(screen HDMI-0 +0+0), $(screen DVI-D-0 +1920+0), DP-0: null"
+	bspc desktop -f 9 && {
+		Desktop_List=$(bspc wm -g)
+		Parent=$(bspc query -N -d 9 | head -n1)
+		[[ $Desktop_List = *[Ff]* ]] && {
+			Last_Free=${Desktop_List##*[Ff]}
+			Desktop_Number=${Last_Free%%:*}
+			bspc node $Parent -d $Desktop_Number
+		} || bspc node $Parent -m prev
+		bspc monitor DP-0 -r
+		xdotool mousemove --sync 960 540
+	}
+} || {
+	[[ $(nvidia-settings -q dpys) != *"(DP-0) (connected)"* ]] && {
+		[[ $(pgrep xfce4-notifyd) ]] && \
+		notify-send "TV not detected"
+		exit 1
+	}
+	nvidia-settings -a CurrentMetaMode="$(screen HDMI-0 +4096+0), $(screen DVI-D-0 +6016+0), $(screen DP-0 +0+0)"
+	bspc monitor DP-0 -d 9
+	bspc desktop -f 9
+	bspc config -m DP-0 top_padding 52
+	bspc config -m DP-0 window_gap 16
+	xdotool mousemove --sync 2048 1080
 	nitrogen --restore &
-	[[ $(echo "$commands" | grep "+3840+0") ]] && \
-	xdotool mousemove --sync 4800 540 || \
-	xdotool mousemove --sync 2880 540
 }
 
-[[ $(echo "$enabled" | grep -c "DPY") -eq 2 ]] && \
-[[ $(echo "$connected" | grep -c "dpy") -eq 3 ]] && \
-screens+=( "+3840+0" )
+read -t "4" <> <(:)
+$HOME/.config/bspwm/polybar/launch.sh &
+$HOME/scripts/xwinwrap-wallpaper.sh &
+while pgrep xfce4-notifyd; do killall xfce4-notifyd; sleep 1; done
+/usr/lib/xfce4/notifyd/xfce4-notifyd &
 
-for i in ${!screens[*]}; do
-command="${screens2[i]}: nvidia-auto-select ${screens[i]} {ForceCompositionPipeline=On}"
-screenlist+=("$command,")
-done
-commands=${screenlist[@]}
-nvidia-settings --assign CurrentMetaMode="${commands%,}"
-xset dpms force off
-sleep 4
-actions &>/dev/null &
