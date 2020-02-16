@@ -5,13 +5,14 @@ move_mouse() {
 	[[ "$pointed_monitor" = "$1" ]] && {
 		xdotool mousemove --sync $2 $3
 		bspc monitor pointed -f
+		exit 0
 	}
 }
 
 [[ $(nvidia-settings --query CurrentMetaMode) = *DPY-2* ]] && {
 	move_mouse DVI-D-0 2048 1080
-	move_mouse HDMI-0 6016 540
-	move_mouse DP-0 7936 540
+	move_mouse HDMI-0 6976 540
+	move_mouse DP-0 5056 540
 } || {
 	move_mouse DVI-D-0 960 540
 	move_mouse HDMI-0 2880 540
