@@ -2,44 +2,40 @@
 conf=$HOME/.config/screenblank.conf
 
 set_conf() {
-	[[ ! -e $conf ]] && {
-    cat <<-EOF >> $conf
-    screenblank=on
-    autosuspend=on
-    autolock=on
-    blank="10"
-    blanklock=".5"
-    lock="30"
-    suspend="60"
-	EOF
+    [[ ! -e $conf ]] && {
+        echo -e 'screenblank=on'
+        echo -e 'autosuspend=on'
+        echo -e 'autolock=on'
+        echo -e 'blank="10"'
+        echo -e 'blanklock=".5"'
+        echo -e 'lock="30"'
+        echo -e 'suspend="60"'
+    } >> $conf
+    [[ $(xset -q) = *"yes"* ]] && {
+        xset s 0 0
+        xset s noblank
+        xset s noexpose
+        xset dpms 0 0 0
     }
-	[[ $(xset -q) == *"yes"* ]] && {
-	xset s 0 0
-	xset s noblank
-	xset s noexpose
-	xset dpms 0 0 0
-	}
 }
 
 set_times() {
 	. $conf
 	times=( "$blank" "$blanklock" "$lock" "$suspend" )
-	CHK1=${times[@]}
-	CHK2=${timesCHK[@]}
-	if [ "$CHK1" != "$CHK2" ]; then
-		timesMS=() timesCHK=()
+	[[ "${times[@]}" != "${timeschk[@]}" ]] && {
+		unset timesms timeschk
 		for i in ${!times[*]}; do
-			MS=$(echo "${times[i]}*60000-2000" | bc -l)
-			timesMS+=(${MS%.*}) timesCHK+=(${times[i]})
+			ms=$(echo "${times[i]}*60000-2000" | bc -l)
+			timesms+=(${ms%.*}) timeschk+=(${times[i]})
 		done
-	fi
+    }
 }
 
 if_video() {
 	media=( "youtube\|vimeo\|twitch" "bomi" "mpv" )
 	media2=( "Vivaldi\|Chromium" "bomi" "mpv" )
 	for i in ${!media[*]}; do
-		[[ $(pacmd list-sink-inputs | grep -B12 ${media2[i]}) == *"RUNNING"* ]] || continue
+		[[ $(pacmd list-sink-inputs | grep -B12 ${media2[i]}) = *"RUNNING"* ]] || continue
 		[[ $(wmctrl -l | grep -i ${media[i]}) ]] && return 0
 	done
 	return 1
@@ -55,16 +51,16 @@ update() {
 }
 
 sxl() {
-	[[ $(nvidia-settings --query CurrentMetaMode) = *DPY-2* ]] && \
-    $HOME/scripts/tv-toggle &
-    xfconf-query xfconf-query -c xfce4-notifyd -p /do-not-disturb -s true
-	sxlock && \
-	xfconf-query xfconf-query -c xfce4-notifyd -p /do-not-disturb -s false
+	[[ $(nvidia-settings --query CurrentMetaMode) = *DPY-2* ]] && {
+        $HOME/scripts/tv-toggle &
+	    read -t 4 <> <(:)
+    }
+	sxlock
 }
 
 notify() {
 	echo "$1"
-	[[ $(pgrep xfce4-notifyd) ]] && \
+	[[ $(pidof xfce4-notifyd) ]] && \
 	notify-send "$1"
 }
 
@@ -73,61 +69,56 @@ status() {
 	vid_playing="playing" || \
 	vid_playing="not playing"
 
-	cat <<-EOH
-	screenblank is $screenblank
-	AutoLock is $autolock
-	AutoSuspend is $autosuspend
-	Video is $vid_playing
-	-----------------------
-	Blank Screen at $blank Mins
-	Blank LockScreen at $blanklock Mins
-	Lock at $lock Mins
-	Suspend at $suspend Mins
-
-	EOH
+	echo -e "screenblank is $screenblank"
+	echo -e "AutoLock is $autolock"
+	echo -e "AutoSuspend is $autosuspend"
+	echo -e "Video is $vid_playing"
+	echo -e "-----------------------"
+	echo -e "Blank Screen at $blank Mins"
+	echo -e "Blank LockScreen at $blanklock Mins"
+	echo -e "Lock at $lock Mins"
+	echo -e "Suspend at $suspend Mins"
 }
 
 usage() {
-	cat <<-EOH
-	screenblank: DPMS bash script for finer control over xset. (in my opinion)
-
-	Usage:
-	screenblank
-	run script without options to toggle on/off
-
-	screenblank -ts | --toggle_suspend
-	toggle AutoSuspend on/off
-
-	screenblank -tl | --toggle_lock
-	toggle AutoLock on/off
-
-	screenblank -b | --blank
-	blank the screen
-
-	screenblank -l | --lock
-	lock the screen with "betterlockscreen"
-
-	screenblank -s | --status
-	check current configuration
-
-	screenblank -h | --help
-	view usage (this)
-
-	screenblank -r | --reset
-	reset the configuration
-
-	screenblank -ab | --adjust_blank
-	adjust Screen Blank time in minutes
-
-	screenblank -alb | --adjust_ls_blank
-	adjust LockScreen blank time in minutes
-
-	screenblank -as | --adjust_suspend
-	adjust Suspend time in minutes
-
-	screenblank -al | --adjust_lock
-	adjust Suspend time in minutes
-	EOH
+	echo -e "screenblank: DPMS bash script of my personal preference"
+    echo -e "\n"
+	echo -e "Usage:"
+	echo -e "screenblank"
+	echo -e "run script without options to toggle on/off"
+    echo -e "\n"
+	echo -e "screenblank -ts | --toggle_suspend"
+	echo -e "toggle AutoSuspend on/off"
+    echo -e "\n"
+	echo -e "screenblank -tl | --toggle_lock"
+	echo -e "toggle AutoLock on/off"
+    echo -e "\n"
+	echo -e "screenblank -b | --blank"
+	echo -e "blank the screen"
+    echo -e "\n"
+	echo -e "screenblank -l | --lock"
+	echo -e "lock the screen with sxlock"
+    echo -e "\n"
+	echo -e "screenblank -s | --status"
+	echo -e "check current configuration"
+    echo -e "\n"
+	echo -e "screenblank -h | --help"
+	echo -e "view usage (this)"
+    echo -e "\n"
+	echo -e "screenblank -r | --reset"
+	echo -e "reset the configuration"
+    echo -e "\n"
+	echo -e "screenblank -ab | --adjust_blank"
+	echo -e "adjust Screen Blank time in minutes"
+    echo -e "\n"
+	echo -e "screenblank -alb | --adjust_ls_blank"
+	echo -e "adjust LockScreen blank time in minutes"
+    echo -e "\n"
+	echo -e "screenblank -as | --adjust_suspend"
+	echo -e "adjust Suspend time in minutes"
+    echo -e "\n"
+	echo -e "screenblank -al | --adjust_lock"
+	echo -e "adjust Suspend time in minutes"
 }
 
 set_conf
@@ -244,10 +235,10 @@ while true; do
 	if [[ $(xset -q) == *"Monitor is Off"* ]]; then
 		if_video || {
 			[[ $autolock == on ]] && \
-			[[ "$(xprintidle)" -ge "${timesMS[2]}" ]] && \
+			[[ "$(xprintidle)" -ge "${timesms[2]}" ]] && \
 			[[ ! $(pidof sxlock) ]] && (sxl) &
 			[[ $autosuspend == on ]] && \
-			[[ "$(xprintidle)" -ge "${timesMS[3]}" ]] && {
+			[[ "$(xprintidle)" -ge "${timesms[3]}" ]] && {
 				systemctl suspend && resetidle
 				until [[ $(xset -q) == *"Monitor is On"* ]]; do
 				xset dpms force on
@@ -256,7 +247,7 @@ while true; do
 		continue
 		}
 	elif [[ $(pidof sxlock) ]]; then
-		[[ "$(xprintidle)" -le "${timesMS[1]}" ]] && continue
+		[[ "$(xprintidle)" -le "${timesms[1]}" ]] && continue
 	else
 		while if_video; do
 			echo "Video is playing"
@@ -264,8 +255,9 @@ while true; do
 			if_video || resetidle
 			[[ $(pidof sxlock) ]] && break
 		done
-		set_conf; set_times;
-		[[ "$(xprintidle)" -le "${timesMS[0]}" ]] && continue
+		set_conf
+        set_times
+		[[ "$(xprintidle)" -le "${timesms[0]}" ]] && continue
 	fi
 	xset dpms force off
 done
