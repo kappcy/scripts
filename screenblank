@@ -1,16 +1,40 @@
 #!/bin/bash
 conf=$HOME/.config/screenblank.conf
 
-set_conf() {
-    [[ ! -e $conf ]] && {
-        echo -e 'screenblank=on'
-        echo -e 'autosuspend=on'
-        echo -e 'autolock=on'
-        echo -e 'blank="10"'
-        echo -e 'blanklock=".5"'
-        echo -e 'lock="30"'
-        echo -e 'suspend="60"'
-    } >> $conf
+update_conf() {
+	(
+		echo -e screenblank=$screenblank
+		echo -e autosuspend=$autosuspend
+		echo -e autolock=$autolock
+		echo -e blank_time='"'$blank_time'"'
+		echo -e blanklock_time='"'$blanklock_time'"'
+		echo -e lock_time='"'$lock_time'"'
+		echo -e suspend_time='"'$suspend_time'"'
+	) > $conf
+}
+
+set_default_conf() {
+	[[ -e $conf ]] && return 1
+	screenblank="off"
+	autosuspend="on"
+	autolock="on"
+	blank_time="10"
+	blanklock_time=".5"
+	lock_time="30"
+	suspend_time="60"
+	return 0
+}
+
+refresh_conf() {
+	set_default_conf && {
+		screenblank=on
+		update_conf
+	}
+	. $conf
+	set_times
+}
+
+disable_xset_presets() {
     [[ $(xset -q) = *"yes"* ]] && {
         xset s 0 0
         xset s noblank
@@ -19,9 +43,14 @@ set_conf() {
     }
 }
 
+clean_exit() {
+	screenblank=off
+	update_conf
+	exit
+}
+
 set_times() {
-	. $conf
-	times=( "$blank" "$blanklock" "$lock" "$suspend" )
+	times=( "$blank_time" "$blanklock_time" "$lock_time" "$suspend_time" )
 	[[ "${times[@]}" != "${timeschk[@]}" ]] && {
 		unset timesms timeschk
 		for i in ${!times[*]}; do
@@ -46,16 +75,15 @@ resetidle() {
 	xdotool mousemove_relative --sync -- -25 -25
 }
 
-update() {
-	sed -i "s/^\($1=\).*/\1$2/" $conf
-}
-
-sxl() {
-	[[ $(nvidia-settings --query CurrentMetaMode) = *DPY-2* ]] && {
-        $HOME/scripts/tv-toggle &
-	    read -t 4 <> <(:)
-    }
-	sxlock
+ci3() {
+	[[ $(pidof i3lock) ]] && return
+	IMAGE="/tmp/lockscreen.png"
+	scrot $IMAGE
+	convert $IMAGE -scale 10% -scale 1000% $IMAGE
+	convert $IMAGE -fill black -colorize 25% $IMAGE
+	i3lock -i $IMAGE
+	rm $IMAGE
+	return 0
 }
 
 notify() {
@@ -74,10 +102,10 @@ status() {
 	echo -e "AutoSuspend is $autosuspend"
 	echo -e "Video is $vid_playing"
 	echo -e "-----------------------"
-	echo -e "Blank Screen at $blank Mins"
-	echo -e "Blank LockScreen at $blanklock Mins"
-	echo -e "Lock at $lock Mins"
-	echo -e "Suspend at $suspend Mins"
+	echo -e "Blank Screen at $blank_time Mins"
+	echo -e "Blank LockScreen at $blanklock_time Mins"
+	echo -e "Lock at $lock_time Mins"
+	echo -e "Suspend at $suspend_time Mins"
 }
 
 usage() {
@@ -97,7 +125,7 @@ usage() {
 	echo -e "blank the screen"
     echo -e "\n"
 	echo -e "screenblank -l | --lock"
-	echo -e "lock the screen with sxlock"
+	echo -e "lock the screen with i3lock"
     echo -e "\n"
 	echo -e "screenblank -s | --status"
 	echo -e "check current configuration"
@@ -121,45 +149,49 @@ usage() {
 	echo -e "adjust Suspend time in minutes"
 }
 
-set_conf
+disable_xset_presets
+set_default_conf && update_conf
 . $conf
 
 # Options
 if [[ -z $1 ]]; then
-     if [[ ! $(pgrep -c screenblank) == "2" ]]; then
-        notify "screenblank Enabled"
-        update screenblank on
-    else
-		notify "screenblank Disabled"
-		update screenblank off
-		pkill -x screenblank
-    fi
-elif [[ $# == 1 ]];then
+	trap 'clean_exit' EXIT INT TERM SIGINT SIGTERM SIGTSTP
+	if [[ $screenblank = on ]]; then
+		notify-send "screenblank disabled"
+		screenblank=off
+	else
+		notify-send "screenblank enabled"
+		screenblank=on
+	fi
+	update_conf
+elif [[ $# = 1 ]];then
 	case "$1" in
 		-ts | --toggle_suspend)
-			if [[ $autosuspend == on ]]; then
+			if [[ $autosuspend = on ]]; then
 				notify "AutoSuspend Disabled"
-				update autosuspend off
+				autosuspend=off
 			else
 				notify "AutoSuspend Enabled"
-				update autosuspend on
+				autosuspend=on
 			fi
+			update_conf
 			;;
 		-tl | --toggle_lock)
 			if [[ $autolock == on ]]; then
 				notify "AutoLock Disabled"
-				update autolock off
+				autolock=off
 			else
 				notify "AutoLock Enabled"
-				update autolock on
+				autolock=on
 			fi
+			update_conf
 			;;
 		-b | --blank)
 			sleep 2
 			xset dpms force off
 			;;
 		-l | --lock)
-			[[ ! $(pidof sxlock) ]] && (sxl) &
+			ci3
 			;;
 		-s | --status)
 			notify "$(status)"
@@ -178,42 +210,42 @@ elif [[ $# == 1 ]];then
 			;;
 	esac
 	exit 0
-elif [[ $# == 2 ]];then
+elif [[ $# = 2 ]];then
 	[[ ! $2 =~ ^[.0-9]+$ ]] && {
 	echo -e "(((invalid argument)))\n"
 	usage
 	exit 1;}
 	case "$1" in
 		-ab | --adjust_blank)
-			if echo "$2 >= $suspend" | bc -l | grep -q 1; then
+			if echo "$2 >= $suspend_time" | bc -l | grep -q 1; then
 			echo "Can't be set higher than Suspend time"
 			exit 1
 			fi
 			echo "Screen blank set at $2 mins"
-			update blank $2
+			blank_time=$2
 			;;
 		-alb | --adjust_ls_blank)
-			if echo "$2 >= $suspend" | bc -l | grep -q 1; then
+			if echo "$2 >= $suspend_time" | bc -l | grep -q 1; then
 			echo "Can't be set higher than Suspend time"
 			exit 1
 			fi
 			echo "LockScreen blank set at $2 mins"
-			update blanklock $2
+			blanklock_time=$2
 			;;
 		-al | --adjust_lock)
-			if echo "$2 >= $suspend" | bc -l | grep -q 1; then
+			if echo "$2 >= $suspend_time" | bc -l | grep -q 1; then
 			echo "Can't be set higher than Suspend time"
 			exit 1
-			elif echo "$2 <= $blank" | bc -l | grep -q 1; then
+			elif echo "$2 <= $blank_time" | bc -l | grep -q 1; then
 			echo "Can't be set lower than Blank time"
 			exit 1
 			fi
 			echo "AutoLock set at $2 mins"
-			update lock $2
+			lock_time=$2
 			;;
 		-as | --adjust_suspend)
 			echo "AutoSuspend set at $2 mins"
-			update suspend $2
+			suspend_time=$2
 			;;
 		*)
 			echo -e "(((invalid argument)))\n"
@@ -221,6 +253,7 @@ elif [[ $# == 2 ]];then
 			exit 1
 			;;
 	esac
+	update_conf
 	exit 0
 else
 	echo -e "(((invalid argument)))\n"
@@ -228,37 +261,34 @@ else
 	exit 1
 fi
 
-# Running it
-while true; do
+while [[ $screenblank = on ]]; do
 	read -t 2 <> <(:)
-	echo "$(xprintidle)"
-	if [[ $(xset -q) == *"Monitor is Off"* ]]; then
-		if_video || {
-			[[ $autolock == on ]] && \
-			[[ "$(xprintidle)" -ge "${timesms[2]}" ]] && \
-			[[ ! $(pidof sxlock) ]] && (sxl) &
-			[[ $autosuspend == on ]] && \
-			[[ "$(xprintidle)" -ge "${timesms[3]}" ]] && {
+	idle_time="$(xprintidle)"
+	echo $idle_time
+	if [[ $(xset -q) = *"Monitor is Off"* ]]; then
+		if_video && continue
+		[[ $autolock = on ]] && \
+		[[ "$idle_time" -ge "${timesms[2]}" ]] && ci3
+		[[ $autosuspend = on ]] && {
+			[[ "$idle_time" -ge "${timesms[3]}" ]] && {
 				systemctl suspend && resetidle
-				until [[ $(xset -q) == *"Monitor is On"* ]]; do
-				xset dpms force on
+				until [[ $(xset -q) = *"Monitor is On"* ]]; do
+					xset dpms force on
 				done
 			}
-		continue
 		}
-	elif [[ $(pidof sxlock) ]]; then
-		[[ "$(xprintidle)" -le "${timesms[1]}" ]] && continue
-	else
-		while if_video; do
-			echo "Video is playing"
-			read -t 2 <> <(:)
-			if_video || resetidle
-			[[ $(pidof sxlock) ]] && break
-		done
-		set_conf
-        set_times
-		[[ "$(xprintidle)" -le "${timesms[0]}" ]] && continue
+		continue
 	fi
+	[[ $(pidof i3lock) ]] && \
+	[[ "$idle_time" -le "${timesms[1]}" ]] && continue
+	while if_video; do
+		echo "Video is playing"
+		read -t 2 <> <(:)
+		if_video || resetidle
+		[[ $(pidof i3lock) ]] && break
+		[[ $screenblank = off ]] && break
+	done
+	refresh_conf
+	[[ "$idle_time" -le "${timesms[0]}" ]] && continue
 	xset dpms force off
 done
-
