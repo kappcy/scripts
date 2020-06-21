@@ -3,14 +3,14 @@ conf=$HOME/.config/screenblank.conf
 
 update_conf() {
 	(
-		echo -e screenblank=$screenblank
-		echo -e autosuspend=$autosuspend
-		echo -e autolock=$autolock
-		echo -e blank_time='"'$blank_time'"'
-		echo -e blanklock_time='"'$blanklock_time'"'
-		echo -e lock_time='"'$lock_time'"'
-		echo -e suspend_time='"'$suspend_time'"'
-	) > $conf
+		echo -e screenblank="$screenblank"
+		echo -e autosuspend="$autosuspend"
+		echo -e autolock="$autolock"
+		echo -e blank_time='"'"$blank_time"'"'
+		echo -e blanklock_time='"'"$blanklock_time"'"'
+		echo -e lock_time='"'"$lock_time"'"'
+		echo -e suspend_time='"'"$suspend_time"'"'
+	) > "$conf"
 }
 
 set_default_conf() {
@@ -26,11 +26,9 @@ set_default_conf() {
 }
 
 refresh_conf() {
-	set_default_conf && {
-		screenblank=on
-		update_conf
-	}
-	. $conf
+	set_default_conf && \
+	screenblank=on && update_conf
+	. "$conf"
 	set_times
 }
 
@@ -44,8 +42,8 @@ disable_xset_presets() {
 }
 
 clean_exit() {
-	screenblank=off
-	update_conf
+	[[ $screenblank = on ]] && \
+	screenblank=off && update_conf
 	exit
 }
 
@@ -55,7 +53,7 @@ set_times() {
 		unset timesms timeschk
 		for i in ${!times[*]}; do
 			ms=$(echo "${times[i]}*60000-2000" | bc -l)
-			timesms+=(${ms%.*}) timeschk+=(${times[i]})
+			timesms+=("${ms%.*}") timeschk+=("${times[i]}")
 		done
     }
 }
@@ -64,8 +62,8 @@ if_video() {
 	media=( "youtube\|vimeo\|twitch" "bomi" "mpv" )
 	media2=( "Vivaldi\|Chromium" "bomi" "mpv" )
 	for i in ${!media[*]}; do
-		[[ $(pacmd list-sink-inputs | grep -B12 ${media2[i]}) = *"RUNNING"* ]] || continue
-		[[ $(wmctrl -l | grep -i ${media[i]}) ]] && return 0
+		[[ $(pacmd list-sink-inputs | grep -B12 "${media2[i]}") = *"RUNNING"* ]] || continue
+		[[ $(wmctrl -l | grep -i "${media[i]}") ]] && return 0
 	done
 	return 1
 }
@@ -151,13 +149,14 @@ usage() {
 
 disable_xset_presets
 set_default_conf && update_conf
-. $conf
+. "$conf"
 
 # Options
 if [[ -z $1 ]]; then
 	trap 'clean_exit' EXIT INT TERM SIGINT SIGTERM SIGTSTP
 	if [[ $screenblank = on ]]; then
 		notify-send "screenblank disabled"
+		read -rt 2 <> <(:)	# prevent spamming instances
 		screenblank=off
 	else
 		notify-send "screenblank enabled"
@@ -200,7 +199,7 @@ elif [[ $# = 1 ]];then
 			usage
 			;;
 		-r | --reset)
-			rm $conf
+			rm "$conf"
 			echo "conf reset"
 			;;
 		*)
@@ -262,33 +261,34 @@ else
 fi
 
 while [[ $screenblank = on ]]; do
-	read -t 2 <> <(:)
+	read -rt 2 <> <(:)
 	idle_time="$(xprintidle)"
-	echo $idle_time
+	echo "$idle_time"
+	refresh_conf
 	if [[ $(xset -q) = *"Monitor is Off"* ]]; then
 		if_video && continue
 		[[ $autolock = on ]] && \
 		[[ "$idle_time" -ge "${timesms[2]}" ]] && ci3
-		[[ $autosuspend = on ]] && {
-			[[ "$idle_time" -ge "${timesms[3]}" ]] && {
-				systemctl suspend && resetidle
-				until [[ $(xset -q) = *"Monitor is On"* ]]; do
-					xset dpms force on
-				done
-			}
+		[[ $autosuspend = on ]] && \
+		[[ "$idle_time" -ge "${timesms[3]}" ]] && {
+			systemctl suspend && resetidle
+			until [[ $(xset -q) = *"Monitor is On"* ]]; do
+				xset dpms force on
+			done
 		}
 		continue
 	fi
-	[[ $(pidof i3lock) ]] && \
-	[[ "$idle_time" -le "${timesms[1]}" ]] && continue
-	while if_video; do
-		echo "Video is playing"
-		read -t 2 <> <(:)
-		if_video || resetidle
-		[[ $(pidof i3lock) ]] && break
-		[[ $screenblank = off ]] && break
-	done
-	refresh_conf
-	[[ "$idle_time" -le "${timesms[0]}" ]] && continue
+	if [[ $(pidof i3lock) ]]; then
+		[[ "$idle_time" -le "${timesms[1]}" ]] && continue
+	else
+		while if_video; do
+			echo "Video is playing"
+			read -rt 2 <> <(:)
+			if_video || resetidle
+			[[ $(pidof i3lock) ]] && break
+			[[ $screenblank = off ]] && break
+		done
+		[[ "$idle_time" -le "${timesms[0]}" ]] && continue
+	fi
 	xset dpms force off
 done
