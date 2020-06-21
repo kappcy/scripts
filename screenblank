@@ -49,7 +49,7 @@ clean_exit() {
 
 set_times() {
 	times=( "$blank_time" "$blanklock_time" "$lock_time" "$suspend_time" )
-	[[ "${times[@]}" != "${timeschk[@]}" ]] && {
+	[[ "${times[*]}" != "${timeschk[*]}" ]] && {
 		unset timesms timeschk
 		for i in ${!times[*]}; do
 			ms=$(echo "${times[i]}*60000-2000" | bc -l)
