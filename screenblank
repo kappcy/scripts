@@ -29,7 +29,27 @@ refresh_conf() {
 	set_default_conf && \
 	screenblank=on && update_conf
 	. "$conf"
-	set_times
+	set_times || error_found
+	value_chk || error_found
+}
+
+value_chk() {
+		[[ $screenblank = off ]] || [[ $screenblank = on ]] || return 1
+		[[ $autosuspend = off ]] || [[ $autosuspend = on ]] || return 1
+		[[ $autolock = off ]] || [[ $autolock = on ]] || return 1
+		return 0
+}
+
+error_found() {
+	notify "error in config file. resetting"
+	rm "$conf"
+	refresh_conf
+}
+
+clean_exit() {
+	[[ $screenblank = on ]] && \
+	screenblank=off && update_conf
+	exit
 }
 
 disable_xset_presets() {
@@ -41,21 +61,17 @@ disable_xset_presets() {
     }
 }
 
-clean_exit() {
-	[[ $screenblank = on ]] && \
-	screenblank=off && update_conf
-	exit
-}
-
 set_times() {
 	times=( "$blank_time" "$blanklock_time" "$lock_time" "$suspend_time" )
 	[[ "${times[*]}" != "${timeschk[*]}" ]] && {
 		unset timesms timeschk
 		for i in ${!times[*]}; do
 			ms=$(echo "${times[i]}*60000-2000" | bc -l)
+			[[ $ms =~ ^[.0-9]+$ ]] || return 1
 			timesms+=("${ms%.*}") timeschk+=("${times[i]}")
 		done
     }
+	return 0
 }
 
 if_video() {
