@@ -25,8 +25,8 @@ set_default_conf() {
 
 refresh_conf() {
 	. "$conf" || error_found
-	set_times || error_found
 	value_chk || error_found
+	manual_edit_chk || error_found
 }
 
 set_times() {
@@ -42,15 +42,19 @@ set_times() {
 	return 0
 }
 
-value_chk() {
+manual_edit_chk() {
 	[[ $(wc -l < "$conf") = 7 ]] || return 1
 	[[ $screenblank = off ]] || [[ $screenblank = on ]] || return 1
 	[[ $autosuspend = off ]] || [[ $autosuspend = on ]] || return 1
 	[[ $autolock = off ]] || [[ $autolock = on ]] || return 1
+}
+
+value_chk() {
+	set_times || return 1
 	[[ "${timesms[0]}" -le "${timesms[3]}" ]] || return 1
 	[[ "${timesms[1]}" -le "${timesms[3]}" ]] || return 1
 	[[ "${timesms[2]}" -le "${timesms[3]}" ]] || return 1
-	return 0
+	[[ "${timesms[2]}" -ge "${timesms[0]}" ]] || return 1
 }
 
 error_found() {
@@ -222,8 +226,8 @@ elif [[ $# = 1 ]];then
 			usage
 			;;
 		-r | --reset)
-			rm "$conf"
-			echo "conf reset"
+			set_default_conf && update_conf
+			notify "conf reset"
 			;;
 		*)
 			echo -e "(((invalid argument)))\n"
@@ -239,35 +243,40 @@ elif [[ $# = 2 ]];then
 	exit 1;}
 	case "$1" in
 		-ab | --adjust_blank)
-			if echo "$2 >= $suspend_time" | bc -l | grep -q 1; then
-			echo "Can't be set higher than Suspend time"
-			exit 1
-			fi
-			echo "Screen blank set at $2 mins"
 			blank_time=$2
+			if value_chk; then
+				echo "Screen blank set at $2 mins"
+			else
+				echo "Can't be set higher than Suspend time"
+				exit 1
+			fi
 			;;
 		-alb | --adjust_ls_blank)
-			if echo "$2 >= $suspend_time" | bc -l | grep -q 1; then
-			echo "Can't be set higher than Suspend time"
-			exit 1
-			fi
-			echo "LockScreen blank set at $2 mins"
 			blanklock_time=$2
+			if value_chk; then
+				echo "Lockscreen blank set at $2 mins"
+			else
+				echo "Can't be set higher than Suspend time"
+				exit 1
+			fi
 			;;
 		-al | --adjust_lock)
-			if echo "$2 >= $suspend_time" | bc -l | grep -q 1; then
-			echo "Can't be set higher than Suspend time"
-			exit 1
-			elif echo "$2 <= $blank_time" | bc -l | grep -q 1; then
-			echo "Can't be set lower than Blank time"
-			exit 1
-			fi
-			echo "AutoLock set at $2 mins"
 			lock_time=$2
+			if value_chk; then
+				echo "AutoLock set at $2 mins"
+			else
+				echo "Can't be set higher than Suspend time or lower than Blank time"
+				exit 1
+			fi
 			;;
 		-as | --adjust_suspend)
-			echo "AutoSuspend set at $2 mins"
 			suspend_time=$2
+			if value_chk; then
+				echo "AutoSuspend set at $2 mins"
+			else
+				echo "Must be the longest set time"
+				exit 1
+			fi
 			;;
 		*)
 			echo -e "(((invalid argument)))\n"
@@ -285,13 +294,13 @@ fi
 
 while [[ $screenblank = on ]]; do
 	read -rt 2 <> <(:)
-	idle_time="$(xprintidle)"
 	refresh_conf
 
 	# Checks for the auto modes
-	if [[ "$idle_time" -ge "${timesms[2]}" ]]; then
+	if [[ "$(xprintidle)" -ge "${timesms[2]}" ]]; then
 		[[ $autolock = on ]] && ci3
-	elif [[ "$idle_time" -ge "${timesms[3]}" ]]; then
+	fi
+	if [[ "$(xprintidle)" -ge "${timesms[3]}" ]]; then
 		if [[ $autosuspend = on ]]; then
 		systemctl suspend && resetidle
 		xset dpms force on
@@ -300,7 +309,7 @@ while [[ $screenblank = on ]]; do
 
 	# Check if screen is locked else check if video is playing
 	if [[ $(pidof i3lock) ]]; then
-		[[ "$idle_time" -le "${timesms[1]}" ]] && continue
+		[[ "$(xprintidle)" -le "${timesms[1]}" ]] && continue
 	else
 		while if_video; do
 			echo "Video is playing"
@@ -310,9 +319,9 @@ while [[ $screenblank = on ]]; do
 			refresh_conf
 			[[ $screenblank = off ]] && break
 		done
-		[[ "$idle_time" -le "${timesms[0]}" ]] && continue
+		[[ "$(xprintidle)" -le "${timesms[0]}" ]] && continue
 	fi
-	xset dpms force standby			# Doesn't always work first time while screen is locked
+	xset dpms force off		# Doesn't always work first time while screen is locked
 done
 
 notify "screenblank disabled"
