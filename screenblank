@@ -106,7 +106,6 @@ ci3() {
 
 notify() {
 	echo "$1"
-	[[ $(pidof xfce4-notifyd) ]] && \
 	notify-send "$1"
 }
 
@@ -203,7 +202,7 @@ elif [[ $# = 1 ]];then
 			update_conf
 			;;
 		-tl | --toggle_lock)
-			if [[ $autolock == on ]]; then
+			if [[ $autolock = on ]]; then
 				notify "AutoLock Disabled"
 				autolock=off
 			else
