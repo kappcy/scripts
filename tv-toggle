@@ -3,6 +3,7 @@
 screen() { echo "$1: nvidia-auto-select $2 {ForceCompositionPipeline=On}" ; }
 
 [[ $(nvidia-settings --query CurrentMetaMode) = *DPY-2* ]] && {
+	echo "screen found"
 	nvidia-settings -a CurrentMetaMode="$(screen HDMI-0 +0+0), $(screen DVI-D-0 +1920+0), DP-0: null"
 	bspc desktop -f 9 && {
 		Desktop_List=$(bspc wm -g)
@@ -17,22 +18,21 @@ screen() { echo "$1: nvidia-auto-select $2 {ForceCompositionPipeline=On}" ; }
 	}
 } || {
 	[[ $(nvidia-settings -q dpys) != *"(DP-0) (connected)"* ]] && {
-		[[ $(pgrep xfce4-notifyd) ]] && \
 		notify-send "TV not detected"
 		exit 1
 	}
 	nvidia-settings -a CurrentMetaMode="$(screen HDMI-0 +4096+0), $(screen DVI-D-0 +6016+0), $(screen DP-0 +0+0)"
+	echo "screen not found"
 	bspc monitor DP-0 -d 9
 	bspc desktop -f 9
 	bspc config -m DP-0 top_padding 52
 	bspc config -m DP-0 window_gap 16
 	xdotool mousemove --sync 2048 1080
-	nitrogen --restore &
+	killall pulseaudio
 }
 
 read -t "4" <> <(:)
 $HOME/.config/bspwm/polybar/launch.sh &
-$HOME/scripts/xwinwrap-wallpaper.sh &
-while pgrep xfce4-notifyd; do killall xfce4-notifyd; sleep 1; done
-/usr/lib/xfce4/notifyd/xfce4-notifyd &
+nitrogen --restore &
+# $HOME/scripts/xwinwrap-wallpaper.sh &
 
