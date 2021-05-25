@@ -28,7 +28,7 @@ screen() { echo "$1: nvidia-auto-select $2 {ForceCompositionPipeline=On}" ; }
 	bspc config -m DP-0 top_padding 52
 	bspc config -m DP-0 window_gap 16
 	xdotool mousemove --sync 2048 1080
-	killall pulseaudio
+	# killall pulseaudio
 }
 
 read -t "4" <> <(:)

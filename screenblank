@@ -79,8 +79,8 @@ disable_xset_presets() {
 }
 
 if_video() {
-	media=( "youtube\|vimeo\|twitch" "bomi" "mpv" )
-	media2=( "Vivaldi\|Chromium" "bomi" "mpv" )
+	media=( "youtube\|vimeo\|vrv\|twitch" "bomi" "mpv" "VLC" )
+	media2=( "Brave\|Vivaldi\|Chromium\|firefox" "bomi" "mpv" "VLC" )
 	for i in ${!media[*]}; do
 		[[ $(pacmd list-sink-inputs | grep -B12 "${media2[i]}") = *"RUNNING"* ]] || continue
 		[[ $(wmctrl -l | grep -i "${media[i]}") ]] && return 0

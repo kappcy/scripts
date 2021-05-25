@@ -1,10 +1,10 @@
 #!/bin/sh
 # DVI-D-0 connected primary 1920x1080+1920+0
 # HDMI-0 connected 1920x1080+0+0
-                    
+
 tablet=( "stylus" "pad" "touch" "eraser" "cursor" )
 
 for i in ${!tablet[*]}; do
 	set=`xsetwacom --list devices | grep "${tablet[i]}" | grep -Po '\d*'`
-	xsetwacom set $set MapToOutput 1920x1080+0+0    
+	xsetwacom set $set MapToOutput 1920x1080+1920+0
 done
