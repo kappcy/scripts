@@ -6,9 +6,9 @@ arc=( ".zip" ".tar" ".rar" ".7z" )
 source_dir="$HOME/Downloads"  # Source directory
 [[ -d $source_dir ]] || exit 1
 
-IFS=$'\t\n'					  # Don't count whitespace as a word boundary
-shopt -s extglob			  # Use extended globbing
-shopt -s nocasematch		  # Don't match case
+IFS=$'\t\n'						# Don't count whitespace as a word boundary
+shopt -s extglob				# Use extended globbing
+shopt -s nocasematch			# Don't match case
 
 # Write list of files including depth 1 subdirectories
 # to a variable excluding target sort directories
