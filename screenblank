@@ -99,7 +99,22 @@ ci3() {
 	scrot $IMAGE
 	convert $IMAGE -scale 10% -scale 1000% $IMAGE
 	convert $IMAGE -fill black -colorize 25% $IMAGE
-	i3lock -i $IMAGE
+	i3lock -e -i $IMAGE \
+ 		--insidever-color=b8bb2666 --insidewrong-color=fb493466 --inside-color=3c383666 \
+ 		--ringver-color=b8bb2699 --ringwrong-color=fb493499 --ring-color=282828 \
+ 		--keyhl-color=b8bb2699 --bshl-color=fb493499 --separator-color=282828 \
+ 		--line-uses-inside --verif-color=ebdbb2 --wrong-color=ebdbb2 \
+ 		--ind-pos="w/2+1920:h/2+140" --time-pos="w/2+1920:h/2-100" \
+		--date-pos="w/2+1920:h/2-40" --greeter-pos="w/2+1920:h/2+100" \
+ 		--verif-text="checking" --wrong-text="no thanks" \
+ 		--verif-font="JetBrains Mono:style=regular" --wrong-font="JetBrains Mono:style=italic,bold" \
+ 		--verif-size=23 --wrong-size=23 \
+ 		--radius 80 --ring-width 4 \
+ 		--time-str="%l:%M %P" --time-size=110 \
+ 		--date-str="%a, %b %d" --date-size=40 \
+ 		--clock --date-font="JetBrains Mono:style=regular" --time-font="JetBrains Mono:style=bold" \
+ 		--date-color=ebdbb2 --time-color=b8bb26 --greeter-color=ebdbb2 \
+ 		--pass-media-keys --pass-screen-keys --pass-power-keys --pass-volume-keys
 	rm $IMAGE
 	return 0
 }

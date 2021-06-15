@@ -9,12 +9,12 @@ move_mouse() {
 	}
 }
 
-[[ $(nvidia-settings --query CurrentMetaMode) = *DPY-2* ]] && {
+if [[ $(nvidia-settings --query CurrentMetaMode) = *DPY-2* ]]; then
 	move_mouse DVI-D-0 2048 1080
 	move_mouse HDMI-0 6976 540
 	move_mouse DP-0 5056 540
-} || {
+else
 	move_mouse DVI-D-0 960 540
 	move_mouse HDMI-0 2880 540
-}
-
+fi
+exit 0
